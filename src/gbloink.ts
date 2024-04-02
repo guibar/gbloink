@@ -140,9 +140,8 @@ class Ball {
     dx: number;
     dy: number;
     rad: number;
-    canvas: Html5Canvas;
 
-    constructor(c: Coords, colour: string, name: string, canvas: Html5Canvas, midi1: number, midi2: number) {
+    constructor(c: Coords, colour: string, name: string, midi1: number, midi2: number) {
         this.name = name;
         this.x = c.x;
         this.y = c.y;
@@ -151,7 +150,6 @@ class Ball {
         this.dx = 2;
         this.dy = 2;
         this.rad = 5;
-        this.canvas = canvas;
         addListenerToCanvas(name + '_speed', this.handleSpeedChangeEvent.bind(this));
     }
 
@@ -160,13 +158,13 @@ class Ball {
         let ty = this.y + this.dy;
         let flag = false;
 
-        if (tx < 3 || tx > this.canvas.canvas.width - 3) {
+        if (tx < 3 || tx > gbloink.canvas.width - 3) {
             this.dx = -this.dx;
             this.playNote(); 
             flag = true;
         }
 
-        if (ty < 3 || ty > this.canvas.canvas.height - 3) {
+        if (ty < 3 || ty > gbloink.canvas.height - 3) {
             this.dy = -this.dy;
             this.playNote();
             flag = true;
@@ -223,7 +221,7 @@ class Ball {
     mapYtoNote(y: number) {
         // transform y coordinate in [0, 400] range to note in [96, 30] range. 
         // 400 is at the bottom so it maps to 30.
-        return Math.floor(((this.canvas.canvas.height - y) / 6) + 30);
+        return Math.floor(((gbloink.canvas.height - y) / 6) + 30);
     }
 
     playNote() {
@@ -238,11 +236,12 @@ class Ball {
     };
 
     draw(): void {
-        this.canvas.ctx.beginPath();
-        this.canvas.ctx.arc(this.x, this.y, this.rad, 0, 2 * Math.PI);
-        this.canvas.ctx.fillStyle = this.colour;
-        this.canvas.ctx.fill();
-        this.canvas.ctx.stroke();
+        let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.rad, 0, 2 * Math.PI);
+        ctx.fillStyle = this.colour;
+        ctx.fill();
+        ctx.stroke();
     }
 
     hit(x: number, y: number, rad: number): boolean {
@@ -278,15 +277,15 @@ class Block {
         return true;
     }
 
-    // do I need to pass the canvas everytime or should I keep it as a member variable even a static one?
-    draw(canvas: Html5Canvas) { 
-        canvas.ctx.beginPath();
-        canvas.ctx.rect(this.xLeft, this.yTop, this.width, this.height);
-        canvas.ctx.fillStyle = this.colour;
-        canvas.ctx.fill();
-        canvas.ctx.lineWidth = 1;
-        canvas.ctx.strokeStyle = 'white';
-        canvas.ctx.stroke();
+    draw() { 
+        let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.rect(this.xLeft, this.yTop, this.width, this.height);
+        ctx.fillStyle = this.colour;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
     }
 }
 
@@ -309,11 +308,10 @@ class BlockKeeper {
         this.blocks.push(new Block(x, y));
     }
     
-    static drawBlocks(canvas: Html5Canvas): void {
-        this.blocks.forEach(block => block.draw(canvas));
+    static drawBlocks(): void {
+        this.blocks.forEach(block => block.draw());
     }
 
-    // why 30 bocks spaced every 30?
     static initialize(): void {           
         for (let i = 0; i <= 30; i++) {
             // create random blocks at the bottom every 30 pixels
@@ -333,60 +331,42 @@ function eventToXY(event: MouseEvent): [number, number] {
     return [x, y];
 };
 
-// Wrapper around the HTML5 canvas API
-class Html5Canvas {
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-    minWidth: number = 400;
-    minHeight: number = 200;
-
-    constructor(canvasId: string) {
-        const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
-        if (!canvas) {
-            throw new Error(`No canvas element found with id ${canvasId}`);
-        }
-        this.canvas = canvas;
-        if (this.canvas.width < this.minWidth || this.canvas.height < this.minHeight) {
-            throw new Error(`Minimum width or height not respected in ${canvasId}`);
-        }
-
-        const ctx = this.canvas.getContext('2d');
-        if (!ctx) {
-            throw new Error('Unable to get 2D context from canvas');
-        }
-        this.ctx = ctx;
-    }
-
-    background(col: string) {
-        this.ctx.fillStyle = col;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-}
-
-
 // Generate a random colour
 let ballSoundControlBarWidth = 170;
 
 let gbloink: {
-    canvas: Html5Canvas;
+    canvas: HTMLCanvasElement;
+    minWidth: number;
+    minHeight: number;
     balls: Ball[];
     init: () => void;
     next: () => void;
 } = {
-    canvas: new Html5Canvas("canvasId"),
+    canvas: document.getElementById("canvasId") as HTMLCanvasElement,
     balls: [],
-    
+    minHeight: 200,
+    minWidth: 400,
     init: function () {
+        if (!this.canvas) {
+            throw new Error(`No canvas element found with id canvasId`);
+        }
+        if (this.canvas.width < this.minWidth || this.canvas.height < this.minHeight) {
+            throw new Error(`Minimum width or height not respected in canvas`);
+        }
+        if (!this.canvas.getContext('2d')) {
+            throw new Error('Unable to get 2D context from canvas');
+        }
+
         this.balls = [
-            new Ball({x: 200, y:200}, '#ff0000', 'redball', this.canvas, 0, 0),
-            new Ball({x:300, y:200}, '#00ff00', 'greenball', this.canvas, 0, 24),
-            new Ball({x:400, y:200}, '#0000ff', 'blueball', this.canvas, 0, 44),
+            new Ball({x: 200, y:200}, '#ff0000', 'redball', 0, 0),
+            new Ball({x:300, y:200}, '#00ff00', 'greenball', 0, 24),
+            new Ball({x: 360, y:200}, '#0000ff', 'blueball', 0, 44),
         ]
         scaleKeeper.setCurrent("major");
 
         BlockKeeper.initialize();        
-        this.canvas.canvas.addEventListener('mouseup', (event: MouseEvent) => {
-            const rect = this.canvas.canvas.getBoundingClientRect();
+        this.canvas.addEventListener('mouseup', (event: MouseEvent) => {
+            const rect = this.canvas.getBoundingClientRect();
             const root = document.documentElement;
             const x = event.pageX - rect.left - root.scrollLeft;
             const y = event.pageY - rect.top - root.scrollTop;
@@ -395,10 +375,13 @@ let gbloink: {
     },
     
     next: function () {
-        this.canvas.background('black');
+        // restore the canvas to all black
+        this.canvas.getContext('2d').fillStyle = 'black';
+        this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
         this.balls.forEach(ball => ball.move(this.balls, BlockKeeper.blocks));
-        BlockKeeper.drawBlocks(this.canvas);
-        this.balls.forEach(ball => ball.draw(this.canvas));
+        BlockKeeper.drawBlocks();
+        this.balls.forEach(ball => ball.draw());
     }
 };
 
