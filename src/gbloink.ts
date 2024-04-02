@@ -40,7 +40,7 @@ class Scale {
 
 // Class for transforming y-coordinates into MIDI notes
 class ScaleKeeper {
-    currentScalekey: string
+    currentScaleName: string
     scales: { [key: string]: Scale };
 
     constructor() {
@@ -56,15 +56,15 @@ class ScaleKeeper {
             pent2: new Scale([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1])
         };
 
-        this.currentScalekey = 'chromatic';
+        this.currentScaleName = 'chromatic';
     }
 
-    setCurrent(currentScalekey: string) {
-        this.currentScalekey = currentScalekey;
+    setCurrent(currentScaleName: string) {
+        this.currentScaleName = currentScaleName;
     }
 
     adjustToCurrentScale(note: number): number {
-        return this.scales[this.currentScalekey].findNextNoteInScale(note);
+        return this.scales[this.currentScaleName].findNextNoteInScale(note);
     }
 }
 
@@ -72,30 +72,27 @@ const scaleKeeper = new ScaleKeeper();
 
 declare const WebAudioTinySynth: any;
 
-// Class representing a control bar
-function addListenerToCanvas(id: string, mouseUpListener: (event: MouseEvent) => void) {
-    const canvas = document.getElementById(id);
-    if (!canvas) {
-        throw new Error(`No canvas element found with id ${id}`);
-    }
-    canvas.addEventListener('mouseup', mouseUpListener);
-}
-
 class Synth {
     synth: any;
     lastNote: number;
     volume: number;
     delay: number;
 
-    constructor(p1: number, p2: number, id: string) {
+    constructor(p1: number, p2: number, ballName: string) {
         this.synth = new WebAudioTinySynth();
         this.lastNote = null;
         this.synth.setProgram(p1, p2);
         this.volume = 50;
         this.delay = 0.5; // default delay
-        addListenerToCanvas(id +'_volume', this.handleVolumeChangeEvent.bind(this));
-        addListenerToCanvas(id + '_delay', this.handleDelayChangeEvent.bind(this));
-        addListenerToCanvas(id + '_instrument', this.handleInstrumentChangeEvent.bind(this));
+
+        let canvas: HTMLCanvasElement = document.getElementById(ballName + '_volume') as HTMLCanvasElement;
+        canvas.addEventListener('mouseup', this.handleVolumeChangeEvent.bind(this));
+    
+        canvas = document.getElementById(ballName + '_delay') as HTMLCanvasElement;
+        canvas.addEventListener('mouseup', this.handleDelayChangeEvent.bind(this));
+
+        canvas = document.getElementById(ballName + '_instrument') as HTMLCanvasElement;
+        canvas.addEventListener('mouseup', this.handleInstrumentChangeEvent.bind(this));
     }
 
     play(note: number) {
@@ -150,7 +147,9 @@ class Ball {
         this.dx = 2;
         this.dy = 2;
         this.rad = 5;
-        addListenerToCanvas(name + '_speed', this.handleSpeedChangeEvent.bind(this));
+
+        let canvas: HTMLCanvasElement = document.getElementById(name + '_speed') as HTMLCanvasElement;
+        canvas.addEventListener('mouseup', this.handleSpeedChangeEvent.bind(this));
     }
 
     move(otherBalls: Ball[], blocks: Block[]) {
