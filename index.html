@@ -69,15 +69,15 @@
 
             <br />&nbsp;<br />
             <div>
-                <input type="radio" checked name="scale" value="major" onClick="noteCalculator.setCurrent('major');" />Major<br />
-                <input type="radio" name="scale" value="minor" onClick="noteCalculator.setCurrent('minor');" />Minor<br />
-                <input type="radio" name="scale" value="diminished" onClick="noteCalculator.setCurrent('diminished');" />Diminished<br />
-                <input type="radio" name="scale" value="pent1" onClick="noteCalculator.setCurrent('pent1');">Pentatonic 1<br />
-                <input type="radio" name="scale" value="pent2" onClick="noteCalculator.setCurrent('pent2');">Pentatonic 2<br />
-                <input type="radio" name="scale" value="arab" onClick="noteCalculator.setCurrent('arab');" />Arab<br />
-                <input type="radio" name="scale" value="gypsy" onClick="noteCalculator.setCurrent('gypsy');" />Gypsy<br />
-                <input type="radio" name="scale" value="debussy" onClick="noteCalculator.setCurrent('debussy');" />Debussy<br />
-                <input type="radio" name="scale" value="chromatic" onClick="noteCalculator.setCurrent('chromatic');" />Chromatic<br />
+                <input type="radio" checked name="scale" value="major" onClick="scaleKeeper.setCurrent('major');" />Major<br />
+                <input type="radio" name="scale" value="minor" onClick="scaleKeeper.setCurrent('minor');" />Minor<br />
+                <input type="radio" name="scale" value="diminished" onClick="scaleKeeper.setCurrent('diminished');" />Diminished<br />
+                <input type="radio" name="scale" value="pent1" onClick="scaleKeeper.setCurrent('pent1');">Pentatonic 1<br />
+                <input type="radio" name="scale" value="pent2" onClick="scaleKeeper.setCurrent('pent2');">Pentatonic 2<br />
+                <input type="radio" name="scale" value="arab" onClick="scaleKeeper.setCurrent('arab');" />Arab<br />
+                <input type="radio" name="scale" value="gypsy" onClick="scaleKeeper.setCurrent('gypsy');" />Gypsy<br />
+                <input type="radio" name="scale" value="debussy" onClick="scaleKeeper.setCurrent('debussy');" />Debussy<br />
+                <input type="radio" name="scale" value="chromatic" onClick="scaleKeeper.setCurrent('chromatic');" />Chromatic<br />
             </div>
         </section>
         </main>
@@ -107,28 +107,6 @@
     </footer>
  
     <script src="gbloink.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var game = new Game("canvasId", MIDI);
-            noteCalculator.setCurrent("major");
-
-            // You can add any other initialization code here
-            // For example, setting up the TinySynth library
-
-            var intervalId;
-            intervalId = setInterval(() => game.next(), 50);
-            document.getElementById('startButton').addEventListener('click', function () {
-                // Implement your start game logic here
-                clearInterval(intervalId);
-                intervalId = setInterval(() => game.next(), 50);
-            });
-
-            document.getElementById('stopButton').addEventListener('click', function () {
-                // Implement your stop game logic here
-                clearInterval(intervalId);
-            });
-        });
-    </script>
   </div>    
 </body>
 
