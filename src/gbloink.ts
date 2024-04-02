@@ -77,6 +77,10 @@ class Synth {
     lastNote: number;
     volume: number;
     delay: number;
+    // width of the respective control elements
+    volumeWidth: number;
+    delayWidth: number;
+    instrumentWidth: number;
 
     constructor(p1: number, p2: number, ballName: string) {
         this.synth = new WebAudioTinySynth();
@@ -87,12 +91,15 @@ class Synth {
 
         let canvas: HTMLCanvasElement = document.getElementById(ballName + '_volume') as HTMLCanvasElement;
         canvas.addEventListener('mouseup', this.handleVolumeChangeEvent.bind(this));
-    
+        this.volumeWidth = canvas.width;
+
         canvas = document.getElementById(ballName + '_delay') as HTMLCanvasElement;
         canvas.addEventListener('mouseup', this.handleDelayChangeEvent.bind(this));
+        this.delayWidth = canvas.width;
 
         canvas = document.getElementById(ballName + '_instrument') as HTMLCanvasElement;
         canvas.addEventListener('mouseup', this.handleInstrumentChangeEvent.bind(this));
+        this.instrumentWidth = canvas.width;
     }
 
     play(note: number) {
@@ -106,20 +113,19 @@ class Synth {
     
     handleInstrumentChangeEvent(event: MouseEvent) {
         const [x, y] = eventToXY(event);
-        const program = Math.floor((x / 170) * 127);
+        const program = Math.floor((x / this.instrumentWidth) * 127);
         this.synth.setProgram(0, program);
     };
 
     handleVolumeChangeEvent(event: MouseEvent) {
         const [x, y] = eventToXY(event);
-        this.volume = Math.floor((x / 170) * 127);
+        this.volume = Math.floor((x / this.volumeWidth) * 127);
     };
 
     handleDelayChangeEvent(event: MouseEvent) {
         const [x, y] = eventToXY(event);
-        this.delay = 0.05 + (x / 170) * 0.95;
+        this.delay = 0.05 + (x / this.delayWidth) * 0.95;
     };
-
 }
 
 type Coords = {
