@@ -143,6 +143,7 @@ class Ball {
     dx: number;
     dy: number;
     rad: number;
+    speedWidth: number;
 
     constructor(c: Coords, colour: string, name: string, midi1: number, midi2: number) {
         this.name = name;
@@ -156,6 +157,7 @@ class Ball {
 
         let canvas: HTMLCanvasElement = document.getElementById(name + '_speed') as HTMLCanvasElement;
         canvas.addEventListener('mouseup', this.handleSpeedChangeEvent.bind(this));
+        this.speedWidth = canvas.width;
     }
 
     move(otherBalls: Ball[], blocks: Block[]) {
@@ -208,12 +210,12 @@ class Ball {
 
         // balls collide with blocks
         for (const b of blocks) {
-            if (b.contains(tx + this.dx, ty)) {
+            if (b.contains({x: tx + this.dx, y: ty})) {
                 this.dx = -this.dx;
                 this.playNote();
             }
 
-            if (b.contains(tx, ty + this.dy)) {
+            if (b.contains({x: tx, y: ty + this.dy})) {
                 this.dy = -this.dy;
                 this.playNote();
             }
@@ -235,7 +237,7 @@ class Ball {
 
     handleSpeedChangeEvent(event: MouseEvent) {
         const [x, y] = eventToXY(event);
-        const speed = 1 + Math.floor((x / 170) * 5);
+        const speed = 1 + Math.floor((x / this.speedWidth) * 5);
         this.dx = speed * (this.dx / Math.abs(this.dx));
         this.dy = speed * (this.dy / Math.abs(this.dy));
     };
@@ -264,19 +266,19 @@ class Block {
     yTop: number;
     colour: string;
 
-    constructor(xCentre: number, yCentre: number) {
+    constructor(blockCentre: Coords) {
         // width and height are random in range [5, 55]
         this.width = 5 + Math.random() * 50;
         this.height = 5 + Math.random() * 50;
-        this.xLeft = xCentre - this.width / 2;
-        this.yTop = yCentre - this.height / 2;
-        this.xRight = xCentre + this.width / 2;
-        this.yBottom = yCentre + this.height / 2;
+        this.xLeft = blockCentre.x - this.width / 2;
+        this.yTop = blockCentre.y - this.height / 2;
+        this.xRight = blockCentre.x + this.width / 2;
+        this.yBottom = blockCentre.y + this.height / 2;
         this.colour = randomColour();
     }
 
-    contains(x: number, y: number) {
-        if (x < this.xLeft || x > this.xRight || y < this.yTop || y > this.yBottom) {
+    contains(point: Coords) {
+        if (point.x < this.xLeft || point.x > this.xRight || point.y < this.yTop || point.y > this.yBottom) {
             return false;
         }
         return true;
@@ -297,20 +299,20 @@ class Block {
 class BlockKeeper {
     static blocks: Block[] = [];
 
-    static createBlock(x: number, y: number) {
-        let b: Block = new Block(x, y);
+    static createBlock(centreCoords: Coords) {
+        let b: Block = new Block(centreCoords);
         BlockKeeper.blocks.push(b);
         return b;
     }
     
-    static removeOrCreateAt(x: number, y: number): void {
+    static removeOrCreateAt(point: Coords): void {
         for(let i=0;i<this.blocks.length;i++) {
-            if (this.blocks[i].contains(x, y)) {
+            if (this.blocks[i].contains(point)) {
                 this.blocks.splice(i, 1);
                 return;
             }
         }
-        this.blocks.push(new Block(x, y));
+        this.blocks.push(new Block(point));
     }
     
     static drawBlocks(): void {
@@ -320,9 +322,15 @@ class BlockKeeper {
     static initialize(): void {           
         for (let i = 0; i <= 30; i++) {
             // create random blocks at the bottom every 30 pixels
-            this.removeOrCreateAt(i * 30, Math.floor(50 + Math.random() * 50));
+            this.removeOrCreateAt({
+                x: i * 30, 
+                y: Math.floor(50 + Math.random() * 50)
+            });
             // create random blocks at the top every 30 pixels
-            this.removeOrCreateAt(i * 30, Math.floor(300 + Math.random() * 50));
+            this.removeOrCreateAt({
+                x: i * 30, 
+                y: Math.floor(300 + Math.random() * 50)
+            });
         }
     }
 }
@@ -373,9 +381,10 @@ let gbloink: {
         this.canvas.addEventListener('mouseup', (event: MouseEvent) => {
             const rect = this.canvas.getBoundingClientRect();
             const root = document.documentElement;
-            const x = event.pageX - rect.left - root.scrollLeft;
-            const y = event.pageY - rect.top - root.scrollTop;
-            BlockKeeper.removeOrCreateAt(x, y);
+            BlockKeeper.removeOrCreateAt({
+                x: event.pageX - rect.left - root.scrollLeft, 
+                y: event.pageY - rect.top - root.scrollTop
+            });
         });
     },
     
