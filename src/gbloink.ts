@@ -1,25 +1,3 @@
-// Generate a random colour
-let ballSoundControlBarWidth = 170;
-
-document.addEventListener("DOMContentLoaded", function() {
-    const game = new Game("canvasId");
-
-    // You can add any other initialization code here
-    // For example, setting up the TinySynth library
-
-    let intervalId = setInterval(() => game.next(), 50);
-
-    document.getElementById('startButton').addEventListener('click', function () {
-        // Implement your start game logic here
-        clearInterval(intervalId);
-        intervalId = setInterval(() => game.next(), 50);
-    });
-
-    document.getElementById('stopButton').addEventListener('click', function () {
-        // Implement your stop game logic here
-        clearInterval(intervalId);
-    });
-});
 
 function randomColour(): string {
     const letters = '0123456789ABCDEF'.split('');
@@ -85,79 +63,12 @@ class ScaleKeeper {
         this.currentScalekey = currentScalekey;
     }
 
-    mapYtoNote(y: number) {
-        // transform y coordinate in [0, 400] range to note in [96, 30] range. 
-        // 400 is at the bottom so it maps to 30.
-        const note = Math.floor(((400 - y) / 6) + 30);
+    adjustToCurrentScale(note: number): number {
         return this.scales[this.currentScalekey].findNextNoteInScale(note);
     }
 }
 
 const scaleKeeper = new ScaleKeeper();
-
-
-// Wrapper around the HTML5 canvas API
-class Html5Canvas {
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-    canvasTag: string;
-    width: number;
-    height: number;
-
-    constructor(canvasId: string, width: number, height: number) {
-        const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
-        if (!canvas) {
-            throw new Error(`No canvas element found with id ${canvasId}`);
-        }
-        this.canvas = canvas;
-
-        const ctx = this.canvas.getContext('2d');
-        if (!ctx) {
-            throw new Error('Unable to get 2D context from canvas');
-        }
-        this.ctx = ctx;
-
-        this.canvasTag = canvasId;
-        this.width = width;
-        this.height = height;
-    }
-
-    background(col: string) {
-        this.ctx.fillStyle = col;
-        this.ctx.fillRect(0, 0, this.width, this.height);
-    }
-
-    fillStyle(col: string) {
-        this.ctx.fillStyle = col;
-    }
-
-    line(x1: number, y1: number, x2: number, y2: number) {
-        if (this.ctx) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x1, y1);
-            this.ctx.lineTo(x2, y2);
-            this.ctx.stroke();
-        }
-    }
-
-    circle(cx: number, cy: number, r: number) {
-        this.ctx.beginPath();
-        const x = this.ctx.lineWidth;
-        this.ctx.lineWidth = 5;
-        this.ctx.arc(cx, cy, r, 0, 2 * Math.PI, false);
-        this.ctx.stroke();
-        this.ctx.lineWidth = x;
-    }
-
-    rect(x: number, y: number, w: number, h: number) {
-        this.ctx.beginPath();
-        const tmp = this.ctx.lineWidth;
-        this.ctx.lineWidth = 3;
-        this.ctx.rect(x, y, w, h);
-        this.ctx.stroke();
-        this.ctx.lineWidth = tmp;
-    }
-}
 
 declare const WebAudioTinySynth: any;
 
@@ -214,12 +125,13 @@ class Synth {
 
 }
 
-
-let COUNTER = 0;
+type Coords = {
+    x: number;
+    y: number;
+}
 
 // Class representing a ball on the canvas
 class Ball {
-    id: number;
     name: string;
     x: number;
     y: number;
@@ -228,21 +140,18 @@ class Ball {
     dx: number;
     dy: number;
     rad: number;
-    width: number;
-    height: number;
+    canvas: Html5Canvas;
 
-    constructor(x: number, y: number, colour: string, name: string, width: number, height: number, midi1: number, midi2: number) {
-        this.x = x;
-        this.y = y;
+    constructor(c: Coords, colour: string, name: string, canvas: Html5Canvas, midi1: number, midi2: number) {
+        this.name = name;
+        this.x = c.x;
+        this.y = c.y;
         this.colour = colour;
         this.synth = new Synth(midi1, midi2, name);
-        this.id = COUNTER;
         this.dx = 2;
         this.dy = 2;
         this.rad = 5;
-        this.width = width;
-        this.height = height;
-        COUNTER += 1;
+        this.canvas = canvas;
         addListenerToCanvas(name + '_speed', this.handleSpeedChangeEvent.bind(this));
     }
 
@@ -251,13 +160,13 @@ class Ball {
         let ty = this.y + this.dy;
         let flag = false;
 
-        if (tx < 3 || tx > this.width - 3) {
+        if (tx < 3 || tx > this.canvas.canvas.width - 3) {
             this.dx = -this.dx;
-            this.playNote();
+            this.playNote(); 
             flag = true;
         }
 
-        if (ty < 3 || ty > this.height - 3) {
+        if (ty < 3 || ty > this.canvas.canvas.height - 3) {
             this.dy = -this.dy;
             this.playNote();
             flag = true;
@@ -269,7 +178,7 @@ class Ball {
 
         // balls collide other balls
         for (const another of otherBalls) {
-            if (another.id === this.id) {
+            if (another.name === this.name) {
                 continue;
             }
             if (another.hit(tx, this.y, this.rad)) {
@@ -311,8 +220,14 @@ class Ball {
         this.y = ty;
     }
 
+    mapYtoNote(y: number) {
+        // transform y coordinate in [0, 400] range to note in [96, 30] range. 
+        // 400 is at the bottom so it maps to 30.
+        return Math.floor(((this.canvas.canvas.height - y) / 6) + 30);
+    }
+
     playNote() {
-        this.synth.play(scaleKeeper.mapYtoNote(this.y));
+        this.synth.play(scaleKeeper.adjustToCurrentScale(this.mapYtoNote(this.y)));
     }
 
     handleSpeedChangeEvent(event: MouseEvent) {
@@ -322,16 +237,12 @@ class Ball {
         this.dy = speed * (this.dy / Math.abs(this.dy));
     };
 
-    // const redSpeed = new ControlBar('redball_speed', this.balls[0].handleSpeedChangeEvent.bind(this.balls[0]));
-    // const greenSpeed = new ControlBar('greenball_speed', this.balls[1].handleSpeedChangeEvent.bind(this.balls[1]));
-    // const blueSpeed = new ControlBar('blueball_speed', this.balls[2].handleSpeedChangeEvent.bind(this.balls[2]));
-
-    draw(canvas: Html5Canvas): void {
-        canvas.ctx.beginPath();
-        canvas.ctx.arc(this.x, this.y, this.rad, 0, 2 * Math.PI);
-        canvas.ctx.fillStyle = this.colour;
-        canvas.ctx.fill();
-        canvas.ctx.stroke();
+    draw(): void {
+        this.canvas.ctx.beginPath();
+        this.canvas.ctx.arc(this.x, this.y, this.rad, 0, 2 * Math.PI);
+        this.canvas.ctx.fillStyle = this.colour;
+        this.canvas.ctx.fill();
+        this.canvas.ctx.stroke();
     }
 
     hit(x: number, y: number, rad: number): boolean {
@@ -422,19 +333,55 @@ function eventToXY(event: MouseEvent): [number, number] {
     return [x, y];
 };
 
-// Class representing the game
-class Game {
+// Wrapper around the HTML5 canvas API
+class Html5Canvas {
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+    minWidth: number = 400;
+    minHeight: number = 200;
+
+    constructor(canvasId: string) {
+        const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+        if (!canvas) {
+            throw new Error(`No canvas element found with id ${canvasId}`);
+        }
+        this.canvas = canvas;
+        if (this.canvas.width < this.minWidth || this.canvas.height < this.minHeight) {
+            throw new Error(`Minimum width or height not respected in ${canvasId}`);
+        }
+
+        const ctx = this.canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Unable to get 2D context from canvas');
+        }
+        this.ctx = ctx;
+    }
+
+    background(col: string) {
+        this.ctx.fillStyle = col;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
+
+
+// Generate a random colour
+let ballSoundControlBarWidth = 170;
+
+let gbloink: {
     canvas: Html5Canvas;
     balls: Ball[];
-    canvasId: any;
-    constructor(canvasId: string) {
-        this.canvas = new Html5Canvas(canvasId, 800, 400);
+    init: () => void;
+    next: () => void;
+} = {
+    canvas: new Html5Canvas("canvasId"),
+    balls: [],
+    
+    init: function () {
         this.balls = [
-            new Ball(200, 200, '#ff0000', 'redball', 800, 400, 0, 0),
-            new Ball(300, 200, '#00ff00', 'greenball', 800, 400, 0, 24),
-            new Ball(400, 200, '#0000ff', 'blueball', 800, 400, 0, 44),
-        ];
-        this.canvasId = canvasId;
+            new Ball({x: 200, y:200}, '#ff0000', 'redball', this.canvas, 0, 0),
+            new Ball({x:300, y:200}, '#00ff00', 'greenball', this.canvas, 0, 24),
+            new Ball({x:400, y:200}, '#0000ff', 'blueball', this.canvas, 0, 44),
+        ]
         scaleKeeper.setCurrent("major");
 
         BlockKeeper.initialize();        
@@ -445,14 +392,32 @@ class Game {
             const y = event.pageY - rect.top - root.scrollTop;
             BlockKeeper.removeOrCreateAt(x, y);
         });
-    }
-
-    next() {
+    },
+    
+    next: function () {
         this.canvas.background('black');
         this.balls.forEach(ball => ball.move(this.balls, BlockKeeper.blocks));
         BlockKeeper.drawBlocks(this.canvas);
         this.balls.forEach(ball => ball.draw(this.canvas));
     }
-}
+};
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    gbloink.init();
+
+    let intervalId = setInterval(() => gbloink.next(), 50);
+
+    document.getElementById('startButton').addEventListener('click', function () {
+        // Implement your start game logic here
+        clearInterval(intervalId);
+        intervalId = setInterval(() => gbloink.next(), 50);
+    });
+
+    document.getElementById('stopButton').addEventListener('click', function () {
+        // Implement your stop game logic here
+        clearInterval(intervalId);
+    });
+});
 
 
