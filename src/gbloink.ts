@@ -72,6 +72,8 @@ const scaleKeeper = new ScaleKeeper();
 
 declare const WebAudioTinySynth: any;
 
+// Each ball has a synth associated with it. The synth is responsible for playing a sound
+// when the ball hits something
 class Synth {
     synth: any;
     lastNote: number;
@@ -128,6 +130,7 @@ class Synth {
     };
 }
 
+// Class to handle (x, y) coordinates
 type Coords = {
     x: number;
     y: number;
@@ -160,7 +163,7 @@ class Ball {
         this.speedWidth = canvas.width;
     }
 
-    move(otherBalls: Ball[], blocks: Block[]) {
+    move(otherBalls: Ball[], blocks: Block[]) : void {
         let tx = this.x + this.dx;
         let ty = this.y + this.dy;
         let flag = false;
@@ -225,17 +228,17 @@ class Ball {
         this.y = ty;
     }
 
-    mapYtoNote(y: number) {
-        // transform y coordinate in [0, 400] range to note in [96, 30] range. 
-        // 400 is at the bottom so it maps to 30.
+    mapYtoNote(y: number): number {
+        // transform y coordinate in [0, height] range to note in [96, 30] range. 
+        // the bottom of the canvas has the highest y coordinate and maps to the lowest note
         return Math.floor(((gbloink.canvas.height - y) / 6) + 30);
     }
 
-    playNote() {
+    playNote(): void {
         this.synth.play(scaleKeeper.adjustToCurrentScale(this.mapYtoNote(this.y)));
     }
 
-    handleSpeedChangeEvent(event: MouseEvent) {
+    handleSpeedChangeEvent(event: MouseEvent): void {
         const [x, y] = eventToXY(event);
         const speed = 1 + Math.floor((x / this.speedWidth) * 5);
         this.dx = speed * (this.dx / Math.abs(this.dx));
@@ -258,27 +261,30 @@ class Ball {
 
 // Class representing a block on the canvas
 class Block {
+    topLeftCornerCoords: Coords;
+    bottomRightCornerCoords: Coords;
     width: number;
     height: number;
-    xLeft: number;
-    xRight: number;
-    yBottom: number;
-    yTop: number;
     colour: string;
 
     constructor(blockCentre: Coords) {
         // width and height are random in range [5, 55]
         this.width = 5 + Math.random() * 50;
         this.height = 5 + Math.random() * 50;
-        this.xLeft = blockCentre.x - this.width / 2;
-        this.yTop = blockCentre.y - this.height / 2;
-        this.xRight = blockCentre.x + this.width / 2;
-        this.yBottom = blockCentre.y + this.height / 2;
+        this.topLeftCornerCoords = {
+            x: blockCentre.x - this.width / 2, 
+            y: blockCentre.y - this.height / 2
+        };
+        this.bottomRightCornerCoords = {
+            x: blockCentre.x + this.width / 2, 
+            y: blockCentre.y + this.height / 2
+        };
         this.colour = randomColour();
     }
 
     contains(point: Coords) {
-        if (point.x < this.xLeft || point.x > this.xRight || point.y < this.yTop || point.y > this.yBottom) {
+        if (point.x < this.topLeftCornerCoords.x || point.x > this.bottomRightCornerCoords.x || 
+            point.y < this.topLeftCornerCoords.y || point.y > this.bottomRightCornerCoords.y) {
             return false;
         }
         return true;
@@ -287,7 +293,7 @@ class Block {
     draw() { 
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
-        ctx.rect(this.xLeft, this.yTop, this.width, this.height);
+        ctx.rect(this.topLeftCornerCoords.x, this.topLeftCornerCoords.y, this.width, this.height);
         ctx.fillStyle = this.colour;
         ctx.fill();
         ctx.lineWidth = 1;
