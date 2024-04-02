@@ -15,6 +15,12 @@ function dist(x1: number, y1: number, x2: number, y2: number): number {
     return Math.sqrt(dx2 + dy2);
 }
 
+// Class to handle (x, y) coordinates
+type Coords = {
+    x: number;
+    y: number;
+}
+
 // Class representing a musical scale
 class Scale {
     notes: boolean[];
@@ -104,7 +110,7 @@ class Synth {
         this.instrumentWidth = canvas.width;
     }
 
-    play(note: number) {
+    play(note: number): void {
         if (this.lastNote !== null) {
             this.synth.noteOff(0, note, 0);
         }
@@ -130,11 +136,6 @@ class Synth {
     };
 }
 
-// Class to handle (x, y) coordinates
-type Coords = {
-    x: number;
-    y: number;
-}
 
 // Class representing a ball on the canvas
 class Ball {
@@ -261,8 +262,8 @@ class Ball {
 
 // Class representing a block on the canvas
 class Block {
-    topLeftCornerCoords: Coords;
-    bottomRightCornerCoords: Coords;
+    topLeftCoords: Coords;
+    bottomRightCoords: Coords;
     width: number;
     height: number;
     colour: string;
@@ -271,11 +272,11 @@ class Block {
         // width and height are random in range [5, 55]
         this.width = 5 + Math.random() * 50;
         this.height = 5 + Math.random() * 50;
-        this.topLeftCornerCoords = {
+        this.topLeftCoords = {
             x: blockCentre.x - this.width / 2, 
             y: blockCentre.y - this.height / 2
         };
-        this.bottomRightCornerCoords = {
+        this.bottomRightCoords = {
             x: blockCentre.x + this.width / 2, 
             y: blockCentre.y + this.height / 2
         };
@@ -283,8 +284,8 @@ class Block {
     }
 
     contains(point: Coords) {
-        if (point.x < this.topLeftCornerCoords.x || point.x > this.bottomRightCornerCoords.x || 
-            point.y < this.topLeftCornerCoords.y || point.y > this.bottomRightCornerCoords.y) {
+        if (point.x < this.topLeftCoords.x || point.x > this.bottomRightCoords.x || 
+            point.y < this.topLeftCoords.y || point.y > this.bottomRightCoords.y) {
             return false;
         }
         return true;
@@ -293,7 +294,7 @@ class Block {
     draw() { 
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
-        ctx.rect(this.topLeftCornerCoords.x, this.topLeftCornerCoords.y, this.width, this.height);
+        ctx.rect(this.topLeftCoords.x, this.topLeftCoords.y, this.width, this.height);
         ctx.fillStyle = this.colour;
         ctx.fill();
         ctx.lineWidth = 1;
@@ -362,9 +363,9 @@ let gbloink: {
     next: () => void;
 } = {
     canvas: document.getElementById("canvasId") as HTMLCanvasElement,
-    balls: [],
     minHeight: 200,
     minWidth: 400,
+    balls: [],
     init: function () {
         if (!this.canvas) {
             throw new Error(`No canvas element found with id canvasId`);
@@ -375,10 +376,10 @@ let gbloink: {
         if (!this.canvas.getContext('2d')) {
             throw new Error('Unable to get 2D context from canvas');
         }
-
+        // need to make the start coordinates relative to width and height
         this.balls = [
             new Ball({x: 200, y:200}, '#ff0000', 'redball', 0, 0),
-            new Ball({x:300, y:200}, '#00ff00', 'greenball', 0, 24),
+            new Ball({x: 300, y:200}, '#00ff00', 'greenball', 0, 24),
             new Ball({x: 360, y:200}, '#0000ff', 'blueball', 0, 44),
         ]
         scaleKeeper.setCurrent("major");
