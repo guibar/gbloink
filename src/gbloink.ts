@@ -90,10 +90,10 @@ class Synth {
     delayWidth: number;
     instrumentWidth: number;
 
-    constructor(p1: number, p2: number, ballName: string) {
+    constructor(timbre: number, ballName: string) {
         this.synth = new WebAudioTinySynth();
+        this.synth.setProgram(0, timbre);
         this.lastNote = null;
-        this.synth.setProgram(p1, p2);
         this.volume = 50;
         this.delay = 0.5; // default delay
 
@@ -115,24 +115,21 @@ class Synth {
             this.synth.noteOff(0, note, 0);
         }
         this.lastNote = note;
-        this.synth.noteOn(0, note, this.volume, 0);        
+        this.synth.noteOn(0, note, this.volume, 0);
         this.synth.noteOff(0, note, this.delay);
     }
-    
-    handleInstrumentChangeEvent(event: MouseEvent) {
-        const [x, y] = eventToXY(event);
-        const program = Math.floor((x / this.instrumentWidth) * 127);
-        this.synth.setProgram(0, program);
+
+    handleInstrumentChangeEvent(event: MouseEvent): void {
+        const timbre = Math.floor((eventToXY(event).x / this.instrumentWidth) * 127);
+        this.synth.setProgram(0, timbre);
     };
 
-    handleVolumeChangeEvent(event: MouseEvent) {
-        const [x, y] = eventToXY(event);
-        this.volume = Math.floor((x / this.volumeWidth) * 127);
+    handleVolumeChangeEvent(event: MouseEvent): void {
+        this.volume = Math.floor((eventToXY(event).x / this.volumeWidth) * 127);
     };
 
-    handleDelayChangeEvent(event: MouseEvent) {
-        const [x, y] = eventToXY(event);
-        this.delay = 0.05 + (x / this.delayWidth) * 0.95;
+    handleDelayChangeEvent(event: MouseEvent): void {
+        this.delay = 0.05 + (eventToXY(event).x / this.delayWidth) * 0.95;
     };
 }
 
@@ -149,12 +146,12 @@ class Ball {
     rad: number;
     speedWidth: number;
 
-    constructor(c: Coords, colour: string, name: string, midi1: number, midi2: number) {
+    constructor(c: Coords, colour: string, name: string, timbre: number) {
         this.name = name;
         this.x = c.x;
         this.y = c.y;
         this.colour = colour;
-        this.synth = new Synth(midi1, midi2, name);
+        this.synth = new Synth(timbre, name);
         this.dx = 2;
         this.dy = 2;
         this.rad = 5;
@@ -164,14 +161,14 @@ class Ball {
         this.speedWidth = canvas.width;
     }
 
-    move(otherBalls: Ball[], blocks: Block[]) : void {
+    move(otherBalls: Ball[], blocks: Block[]): void {
         let tx = this.x + this.dx;
         let ty = this.y + this.dy;
         let flag = false;
 
         if (tx < 3 || tx > gbloink.canvas.width - 3) {
             this.dx = -this.dx;
-            this.playNote(); 
+            this.playNote();
             flag = true;
         }
 
@@ -214,12 +211,12 @@ class Ball {
 
         // balls collide with blocks
         for (const b of blocks) {
-            if (b.contains({x: tx + this.dx, y: ty})) {
+            if (b.contains({ x: tx + this.dx, y: ty })) {
                 this.dx = -this.dx;
                 this.playNote();
             }
 
-            if (b.contains({x: tx, y: ty + this.dy})) {
+            if (b.contains({ x: tx, y: ty + this.dy })) {
                 this.dy = -this.dy;
                 this.playNote();
             }
@@ -240,8 +237,7 @@ class Ball {
     }
 
     handleSpeedChangeEvent(event: MouseEvent): void {
-        const [x, y] = eventToXY(event);
-        const speed = 1 + Math.floor((x / this.speedWidth) * 5);
+        const speed = 1 + Math.floor((eventToXY(event).x / this.speedWidth) * 5);
         this.dx = speed * (this.dx / Math.abs(this.dx));
         this.dy = speed * (this.dy / Math.abs(this.dy));
     };
@@ -273,25 +269,25 @@ class Block {
         this.width = 5 + Math.random() * 50;
         this.height = 5 + Math.random() * 50;
         this.topLeftCoords = {
-            x: blockCentre.x - this.width / 2, 
+            x: blockCentre.x - this.width / 2,
             y: blockCentre.y - this.height / 2
         };
         this.bottomRightCoords = {
-            x: blockCentre.x + this.width / 2, 
+            x: blockCentre.x + this.width / 2,
             y: blockCentre.y + this.height / 2
         };
         this.colour = randomColour();
     }
 
-    contains(point: Coords) {
-        if (point.x < this.topLeftCoords.x || point.x > this.bottomRightCoords.x || 
+    contains(point: Coords): boolean {
+        if (point.x < this.topLeftCoords.x || point.x > this.bottomRightCoords.x ||
             point.y < this.topLeftCoords.y || point.y > this.bottomRightCoords.y) {
             return false;
         }
         return true;
     }
 
-    draw() { 
+    draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
         ctx.rect(this.topLeftCoords.x, this.topLeftCoords.y, this.width, this.height);
@@ -311,9 +307,9 @@ class BlockKeeper {
         BlockKeeper.blocks.push(b);
         return b;
     }
-    
+
     static removeOrCreateAt(point: Coords): void {
-        for(let i=0;i<this.blocks.length;i++) {
+        for (let i = 0; i < this.blocks.length; i++) {
             if (this.blocks[i].contains(point)) {
                 this.blocks.splice(i, 1);
                 return;
@@ -321,21 +317,21 @@ class BlockKeeper {
         }
         this.blocks.push(new Block(point));
     }
-    
+
     static drawBlocks(): void {
         this.blocks.forEach(block => block.draw());
     }
 
-    static initialize(): void {           
+    static initialize(): void {
         for (let i = 0; i <= 30; i++) {
             // create random blocks at the bottom every 30 pixels
             this.removeOrCreateAt({
-                x: i * 30, 
+                x: i * 30,
                 y: Math.floor(50 + Math.random() * 50)
             });
             // create random blocks at the top every 30 pixels
             this.removeOrCreateAt({
-                x: i * 30, 
+                x: i * 30,
                 y: Math.floor(300 + Math.random() * 50)
             });
         }
@@ -343,12 +339,12 @@ class BlockKeeper {
 }
 
 
-function eventToXY(event: MouseEvent): [number, number] {
+function eventToXY(event: MouseEvent): Coords {
     const rect = (event.currentTarget as Element).getBoundingClientRect();
     const root = document.documentElement;
-    const x = event.pageX - rect.left - root.scrollLeft;
-    const y = event.pageY - rect.top - root.scrollTop;
-    return [x, y];
+    const xC = event.pageX - rect.left - root.scrollLeft;
+    const yC = event.pageY - rect.top - root.scrollTop;
+    return {x: xC, y: yC};
 };
 
 // Generate a random colour
@@ -384,22 +380,22 @@ let gbloink: {
         ]
         scaleKeeper.setCurrent("major");
 
-        BlockKeeper.initialize();        
+        BlockKeeper.initialize();
         this.canvas.addEventListener('mouseup', (event: MouseEvent) => {
             const rect = this.canvas.getBoundingClientRect();
             const root = document.documentElement;
             BlockKeeper.removeOrCreateAt({
-                x: event.pageX - rect.left - root.scrollLeft, 
+                x: event.pageX - rect.left - root.scrollLeft,
                 y: event.pageY - rect.top - root.scrollTop
             });
         });
     },
-    
+
     next: function () {
         // restore the canvas to all black
         this.canvas.getContext('2d').fillStyle = 'black';
         this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
         this.balls.forEach(ball => ball.move(this.balls, BlockKeeper.blocks));
         BlockKeeper.drawBlocks();
         this.balls.forEach(ball => ball.draw());
@@ -407,7 +403,7 @@ let gbloink: {
 };
 
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     gbloink.init();
 
     let intervalId = setInterval(() => gbloink.next(), 50);
