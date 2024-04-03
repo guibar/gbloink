@@ -82,7 +82,6 @@ declare const WebAudioTinySynth: any;
 // when the ball hits something
 class Synth {
     synth: any;
-    lastNote: number;
     volume: number;
     delay: number;
     // width of the respective control elements
@@ -93,9 +92,8 @@ class Synth {
     constructor(timbre: number, ballName: string) {
         this.synth = new WebAudioTinySynth();
         this.synth.setProgram(0, timbre);
-        this.lastNote = null;
         this.volume = 50;
-        this.delay = 0.5; // default delay
+        this.delay = 2; // default delay
 
         let canvas: HTMLCanvasElement = document.getElementById(ballName + '_volume') as HTMLCanvasElement;
         canvas.addEventListener('mouseup', this.handleVolumeChangeEvent.bind(this));
@@ -111,12 +109,9 @@ class Synth {
     }
 
     play(note: number): void {
-        if (this.lastNote !== null) {
-            this.synth.noteOff(0, note, 0);
-        }
-        this.lastNote = note;
-        this.synth.noteOn(0, note, this.volume, 0);
-        this.synth.noteOff(0, note, this.delay);
+        // no delay used
+        this.synth.noteOn(0, note, this.volume);
+        this.synth.noteOff(0, note);
     }
 
     handleInstrumentChangeEvent(event: MouseEvent): void {
@@ -129,7 +124,8 @@ class Synth {
     };
 
     handleDelayChangeEvent(event: MouseEvent): void {
-        this.delay = 0.05 + (eventToXY(event).x / this.delayWidth) * 0.95;
+        this.delay = Math.floor(eventToXY(event).x / this.delayWidth * 10);
+        console.log('delay set to', this.delay);
     };
 }
 
