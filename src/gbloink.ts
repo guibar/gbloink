@@ -374,9 +374,9 @@ let gbloink: {
         }
         // need to make the start coordinates relative to width and height
         this.balls = [
-            new Ball({x: 200, y:200}, '#ff0000', 'redball', 0, 0),
-            new Ball({x: 300, y:200}, '#00ff00', 'greenball', 0, 24),
-            new Ball({x: 360, y:200}, '#0000ff', 'blueball', 0, 44),
+            new Ball({x: 200, y:200}, '#ff0000', 'redball', 0),
+            new Ball({x: 300, y:200}, '#00ff00', 'greenball', 24),
+            new Ball({x: 360, y:200}, '#0000ff', 'blueball', 44),
         ]
         scaleKeeper.setCurrent("major");
 
