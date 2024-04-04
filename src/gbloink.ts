@@ -81,52 +81,56 @@ declare const WebAudioTinySynth: any;
 // Each ball has a synth associated with it. The synth is responsible for playing a sound
 // when the ball hits something
 class Synth {
+    static channelDec: { [key: string]: number } = {
+        'redball':  0,
+        'greenball': 1,
+        'blueball': 2,
+    };
     synth: any;
-    volume: number;
-    delay: number;
-    // width of the respective control elements
-    volumeWidth: number;
-    delayWidth: number;
-    instrumentWidth: number;
+    volume: number = 50;
+    delay: number = 50;
+    timbre: number;
+    previousNote: number = 0;
+    midiChannel: number = 0;
 
-    constructor(timbre: number, ballName: string) {
+    constructor(ballName: string, timbre: number) {
+        this.midiChannel = Synth.channelDec[ballName];
         this.synth = new WebAudioTinySynth();
-        this.synth.setProgram(0, timbre);
-        this.volume = 50;
-        this.delay = 2; // default delay
+        this.synth.setTsMode(0);
+        this.timbre = timbre;
+        this.synth.setProgram(0, this.timbre);
 
-        let canvas: HTMLCanvasElement = document.getElementById(ballName + '_volume') as HTMLCanvasElement;
-        canvas.addEventListener('mouseup', this.handleVolumeChangeEvent.bind(this));
-        this.volumeWidth = canvas.width;
+        let volumeSlider = document.getElementById(ballName + '_volume') as HTMLInputElement;
+        volumeSlider.value = this.volume.toString();
+        volumeSlider.addEventListener('input', (event: InputEvent) => {
+            this.volume = parseInt((event.target as HTMLInputElement).value);
+        });
 
-        canvas = document.getElementById(ballName + '_delay') as HTMLCanvasElement;
-        canvas.addEventListener('mouseup', this.handleDelayChangeEvent.bind(this));
-        this.delayWidth = canvas.width;
+        // remove this code for now, until I find a satisfactory way to handle note duration
+        // let delaySlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
+        // delaySlider.value = this.delay.toString();
+        // delaySlider.addEventListener('input', (event: InputEvent) => {
+        //     this.delay = parseInt((event.target as HTMLInputElement).value);
+        // });
 
-        canvas = document.getElementById(ballName + '_instrument') as HTMLCanvasElement;
-        canvas.addEventListener('mouseup', this.handleInstrumentChangeEvent.bind(this));
-        this.instrumentWidth = canvas.width;
+        let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
+        instrumentSlider.value = timbre.toString();
+        instrumentSlider.addEventListener('input', (event: InputEvent) => {
+            console.log('about to set the ball to value', this.midiChannel, parseInt((event.target as HTMLInputElement).value));
+            this.synth.setProgram(this.midiChannel, parseInt((event.target as HTMLInputElement).value));
+        });
     }
 
     play(note: number): void {
-        // no delay used
-        this.synth.noteOn(0, note, this.volume);
-        this.synth.noteOff(0, note);
+        // send a noteOff message for the old note, this shouldn't be needed
+        if (this.previousNote !== null) {
+            this.synth.noteOff(this.midiChannel, this.previousNote);
+        }
+        this.previousNote = note;
+
+        this.synth.noteOn(this.midiChannel, note, this.volume);
+        this.synth.noteOff(this.midiChannel, note, this.delay);
     }
-
-    handleInstrumentChangeEvent(event: MouseEvent): void {
-        const timbre = Math.floor((eventToXY(event).x / this.instrumentWidth) * 127);
-        this.synth.setProgram(0, timbre);
-    };
-
-    handleVolumeChangeEvent(event: MouseEvent): void {
-        this.volume = Math.floor((eventToXY(event).x / this.volumeWidth) * 127);
-    };
-
-    handleDelayChangeEvent(event: MouseEvent): void {
-        this.delay = Math.floor(eventToXY(event).x / this.delayWidth * 10);
-        console.log('delay set to', this.delay);
-    };
 }
 
 
@@ -140,21 +144,20 @@ class Ball {
     dx: number;
     dy: number;
     rad: number;
-    speedWidth: number;
 
     constructor(c: Coords, colour: string, name: string, timbre: number) {
         this.name = name;
         this.x = c.x;
         this.y = c.y;
         this.colour = colour;
-        this.synth = new Synth(timbre, name);
+        this.synth = new Synth(name, timbre);
         this.dx = 2;
         this.dy = 2;
         this.rad = 5;
 
-        let canvas: HTMLCanvasElement = document.getElementById(name + '_speed') as HTMLCanvasElement;
-        canvas.addEventListener('mouseup', this.handleSpeedChangeEvent.bind(this));
-        this.speedWidth = canvas.width;
+        let speedSlider = document.getElementById(name + '_speed') as HTMLInputElement;
+        speedSlider.value = this.dx.toString();
+        speedSlider.addEventListener('input', this.handleSpeedChangeEvent.bind(this));
     }
 
     move(otherBalls: Ball[], blocks: Block[]): void {
@@ -207,17 +210,17 @@ class Ball {
 
         // balls collide with blocks
         for (const b of blocks) {
-            if (b.contains({ x: tx + this.dx, y: ty })) {
-                this.dx = -this.dx;
-                this.playNote();
-            }
-
-            if (b.contains({ x: tx, y: ty + this.dy })) {
-                this.dy = -this.dy;
+            // if both if conditions are true, the ball is hitting a corner of the block
+            if (b.contains({ x: tx + this.dx, y: ty + this.dy })) {
+                if (b.contains({ x: tx + this.dx, y: ty })) {
+                    this.dx = -this.dx;
+                }
+                if (b.contains({ x: tx, y: ty + this.dy })) {
+                    this.dy = -this.dy;
+                }
                 this.playNote();
             }
         }
-
         this.x = tx;
         this.y = ty;
     }
@@ -232,11 +235,11 @@ class Ball {
         this.synth.play(scaleKeeper.adjustToCurrentScale(this.mapYtoNote(this.y)));
     }
 
-    handleSpeedChangeEvent(event: MouseEvent): void {
-        const speed = 1 + Math.floor((eventToXY(event).x / this.speedWidth) * 5);
-        this.dx = speed * (this.dx / Math.abs(this.dx));
-        this.dy = speed * (this.dy / Math.abs(this.dy));
-    };
+    handleSpeedChangeEvent(event: InputEvent): void {
+        const speed = parseInt((event.target as HTMLInputElement).value);
+        this.dx = speed * Math.sign(this.dx);
+        this.dy = speed * Math.sign(this.dy);
+    }
 
     draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
@@ -392,9 +395,9 @@ let gbloink: {
         this.canvas.getContext('2d').fillStyle = 'black';
         this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        this.balls.forEach(ball => ball.move(this.balls, BlockKeeper.blocks));
+        this.balls.forEach((ball: Ball) => ball.move(this.balls, BlockKeeper.blocks));
         BlockKeeper.drawBlocks();
-        this.balls.forEach(ball => ball.draw());
+        this.balls.forEach((ball: Ball) => ball.draw());
     }
 };
 
@@ -403,6 +406,7 @@ document.addEventListener("DOMContentLoaded", function () {
     gbloink.init();
 
     let intervalId = setInterval(() => gbloink.next(), 50);
+    clearInterval(intervalId);
 
     document.getElementById('startButton').addEventListener('click', function () {
         // Implement your start game logic here

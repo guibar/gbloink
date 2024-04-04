@@ -44,25 +44,25 @@
                     <th>Speed</th>
                     <th>Instrument</th>
                     <th>Volume</th>                    
-                    <th>Decay</th>
+                    <!-- <th>Decay</th> -->
                 </tr>
                 <tr>
-                    <td class="red"><canvas id="redball_speed" class="control_bar" width="170" height="20"></canvas></td>
-                    <td class="red"><canvas id="redball_instrument" class="control_bar" width="170" height="20"></canvas></td>
-                    <td class="red"><canvas id="redball_volume" class="control_bar" width="170" height="20"></canvas></td>            
-                    <td class="red"><canvas id="redball_delay" class="control_bar" width="170" height="20"></canvas></td>
+                    <td class="red"><input type="range" min="1" max="6" value="1" class="slider" id="redball_speed"></td>
+                    <td class="red"><input type="range" min="1" max="127" value="1" class="slider" id="redball_instrument"></td>
+                    <td class="red"><input type="range" min="0" max="127" value="50" class="slider" id="redball_volume"></td>
+                    <!-- <td class="red"><input type="range" min="0" max="2000" value="0" class="slider" id="redball_delay"></td> -->
                 </tr>
                 <tr>
-                    <td class="green"><canvas id="greenball_speed" class="control_bar" width="170" height="20"></canvas></td>
-                    <td class="green"><canvas id="greenball_instrument" class="control_bar" width="170" height="20"></canvas></td>
-                    <td class="green"><canvas id="greenball_volume" class="control_bar" width="170" height="20"></canvas></td>                    
-                    <td class="green"><canvas id="greenball_delay" class="control_bar" width="170" height="20"></canvas></td>
+                    <td class="green"><input type="range" min="1" max="6" value="1" class="slider" id="greenball_speed"></td>
+                    <td class="green"><input type="range" min="1" max="127" value="1" class="slider" id="greenball_instrument"></td>
+                    <td class="green"><input type="range" min="0" max="127" value="50" class="slider" id="greenball_volume"></td>
+                    <!-- <td class="green"><input type="range" min="0" max="500" value="0" class="slider" id="greenball_delay"></td> -->
                 </tr>
                 <tr>
-                    <td class="blue"><canvas id="blueball_speed" class="control_bar" width="170" height="20"></canvas></td>
-                    <td class="blue"><canvas id="blueball_instrument" class="control_bar" width="170" height="20"></canvas></td>
-                    <td class="blue"><canvas id="blueball_volume" class="control_bar" width="170" height="20"></canvas></td>                    
-                    <td class="blue"><canvas id="blueball_delay" class="control_bar" width="170" height="20"></canvas></td>
+                    <td class="blue"><input type="range" min="1" max="6" value="1" class="slider" id="blueball_speed"></td>
+                    <td class="blue"><input type="range" min="1" max="127" value="1" class="slider" id="blueball_instrument"></td>
+                    <td class="blue"><input type="range" min="0" max="127" value="50" class="slider" id="blueball_volume"></td>
+                    <!-- <td class="blue"><input type="range" min="0" max="500" value="0" class="slider" id="blueball_delay"></td> -->
                 </tr>
 
             </table>
