@@ -8,20 +8,14 @@ function randomColour(): string {
     return color;
 }
 
-// Calculate the Euclidean distance between two points
-function dist(x1: number, y1: number, x2: number, y2: number): number {
-    const dx2 = (x1 - x2) ** 2;
-    const dy2 = (y1 - y2) ** 2;
-    return Math.sqrt(dx2 + dy2);
-}
-
 // Class to handle (x, y) coordinates
 type Coords = {
     x: number;
     y: number;
 }
 
-// Class representing a musical scale
+// Class representing a musical scale, with an array of 12 booleans indicating which
+// notes are in the scale and which are not.
 class Scale {
     notes: boolean[];
 
@@ -135,6 +129,8 @@ class Synth {
 
 // Class representing a ball on the canvas
 class Ball {
+    static hitDistance: number = 8;
+    static radius: number = 5;
     name: string;
     x: number;
     y: number;
@@ -142,7 +138,6 @@ class Ball {
     synth: Synth;
     dx: number;
     dy: number;
-    rad: number;
 
     constructor(c: Coords, colour: string, name: string, timbre: number) {
         this.name = name;
@@ -152,82 +147,81 @@ class Ball {
         this.synth = new Synth(name, timbre);
         this.dx = 2;
         this.dy = 2;
-        this.rad = 5;
 
         let speedSlider = document.getElementById(name + '_speed') as HTMLInputElement;
         speedSlider.value = this.dx.toString();
         speedSlider.addEventListener('input', this.handleSpeedChangeEvent.bind(this));
     }
 
-    move(otherBalls: Ball[], blocks: Block[]): void {
-        let tx = this.x + this.dx;
-        let ty = this.y + this.dy;
-        let flag = false;
+    static pairBallCollide(b1: Ball, b2: Ball): boolean {
+        // if the balls are too far away on either dimension,
+        if (Math.abs(b1.x - b2.x) > Ball.hitDistance || Math.abs(b1.y - b2.y) > Ball.hitDistance) {
+            return false;
+        } // else the balls are colliding
+        // if they are moving on opposite directions in x, reverse the x speed of both
+        if (b1.dx * b2.dx < 0) {
+            b1.dx = -b1.dx;
+            b2.dx = -b2.dx;
+        } // if they are moving on opposite directions in y, reverse the y speed of both
+        if (b1.dy * b2.dy < 0) {
+            b1.dy = -b1.dy;
+            b2.dy = -b2.dy;
+        }
+        // the case where they are moving in the same direction but one is faster is not handled
+        b1.playNote();
+        b2.playNote();
+        return true;
+    }
 
-        if (tx < 3 || tx > gbloink.canvas.width - 3) {
+    // consider all pairwise interactions between balls
+    static allBallsCollide(balls: Ball[]): void {
+        for (let i = 0; i < balls.length; i++) {
+            for (let j = i+1; j < balls.length; j++) {
+                this.pairBallCollide(balls[i], balls[j]);
+            }
+        }
+    }
+    /**
+     * Move the ball by dx and dy corresponding to one unit of time. 
+     * |dx| = |dy| so All balls move at the same speed
+     * along the x and y axes i.e. on a line of + or - 45 degrees.
+     */
+    move() : void {
+        this.x += this.dx;
+        this.y += this.dy;
+    }
+    /**
+     * Adjust speed and make sound if ball is heading towards a border
+     */
+    detectBorderCollision(): void {
+        let flag: boolean = false;
+        if (this.x < 3 || this.x > gbloink.canvas.width - 3) {
             this.dx = -this.dx;
-            this.playNote();
             flag = true;
         }
 
-        if (ty < 3 || ty > gbloink.canvas.height - 3) {
+        if (this.y < 3 || this.y > gbloink.canvas.height - 3) {
             this.dy = -this.dy;
-            this.playNote();
             flag = true;
         }
 
         if (flag) {
-            return;
+            this.playNote();
         }
-
-        // balls collide other balls
-        for (const another of otherBalls) {
-            if (another.name === this.name) {
-                continue;
-            }
-            if (another.hit(tx, this.y, this.rad)) {
-                if (another.x < this.x) {
-                    this.dx = Math.abs(this.dx);
-                } else {
-                    this.dx = -Math.abs(this.dx);
-                }
-                this.playNote();
-                flag = true;
-                continue;
-            }
-
-            if (another.hit(this.x, ty, this.rad)) {
-                if (another.y < this.y) {
-                    this.dy = Math.abs(this.dy);
-                } else {
-                    this.dy = -Math.abs(this.dy);
-                }
-                this.playNote();
-                flag = true;
-            }
-        }
-
-        // balls collide with blocks
-        for (const b of blocks) {
-            if (b.contains({ x: tx + this.dx, y: ty })) {
-                this.dx = -this.dx;
-                this.playNote();
-            }
-            if (b.contains({ x: tx, y: ty + this.dy })) {
-                this.dy = -this.dy;
-                this.playNote();
-            }
-        }
-        this.x = tx;
-        this.y = ty;
     }
-
+    /**
+     * Map linearly the y coordinate in [0, height] range to note in [96, 30] range = [C7, B2]
+     * The bottom of the canvas has the highest y coordinate and maps to the lowest note 
+     * @param a y coordinate on the canvas
+     * @returns a note in the MIDI format 
+     */
     mapYtoNote(y: number): number {
-        // transform y coordinate in [0, height] range to note in [96, 30] range. 
-        // the bottom of the canvas has the highest y coordinate and maps to the lowest note
         return Math.floor(((gbloink.canvas.height - y) / 6) + 30);
     }
-
+    /**
+     * Play a note corresponding to the y coordinate of the ball adjusted
+     * to belong to the current scale
+     */
     playNote(): void {
         this.synth.play(scaleKeeper.adjustToCurrentScale(this.mapYtoNote(this.y)));
     }
@@ -238,24 +232,24 @@ class Ball {
         this.dy = speed * Math.sign(this.dy);
     }
 
+    /**
+     * Draw the ball on the canvas as a full circle of the correct color
+     */
     draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.rad, 0, 2 * Math.PI);
+        ctx.arc(this.x, this.y, Ball.radius, 0, 2 * Math.PI);
         ctx.fillStyle = this.colour;
         ctx.fill();
         ctx.stroke();
     }
-
-    hit(x: number, y: number, rad: number): boolean {
-        return dist(x, y, this.x, this.y) < this.rad + rad;
-    }
 }
+
 
 // Class representing a block on the canvas
 class Block {
-    topLeftCoords: Coords;
-    bottomRightCoords: Coords;
+    bottomLeft: Coords;
+    topRightCoords: Coords;
     width: number;
     height: number;
     colour: string;
@@ -264,11 +258,11 @@ class Block {
         // width and height are random in range [5, 55]
         this.width = 5 + Math.random() * 50;
         this.height = 5 + Math.random() * 50;
-        this.topLeftCoords = {
+        this.bottomLeft = {
             x: blockCentre.x - this.width / 2,
             y: blockCentre.y - this.height / 2
         };
-        this.bottomRightCoords = {
+        this.topRightCoords = {
             x: blockCentre.x + this.width / 2,
             y: blockCentre.y + this.height / 2
         };
@@ -276,17 +270,47 @@ class Block {
     }
 
     contains(point: Coords): boolean {
-        if (point.x < this.topLeftCoords.x || point.x > this.bottomRightCoords.x ||
-            point.y < this.topLeftCoords.y || point.y > this.bottomRightCoords.y) {
+        if (point.x < this.bottomLeft.x || point.x > this.topRightCoords.x ||
+            point.y < this.bottomLeft.y || point.y > this.topRightCoords.y) {
             return false;
         }
         return true;
     }
 
+    adjustVspeed(ball: Ball): boolean {
+        // ball will cross the bottom edge of this block
+        if (((ball.y - this.bottomLeft.y) * (ball.y + ball.dx - this.bottomLeft.y)) <= 0 &&
+            this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
+            ball.dy = -ball.dy;
+            return true;
+        }
+        // ball will cross the top edge of this block
+        else if (((ball.y - this.topRightCoords.y) * (ball.y + ball.dy - this.topRightCoords.y)) <= 0 &&
+        this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
+            ball.dy = -ball.dy;
+            return true;
+        }
+    }
+
+    adjustHspeed(ball: Ball): boolean {
+        // ball will cross the left edge
+        if (((ball.x - this.bottomLeft.x) * (ball.x + ball.dx - this.bottomLeft.x)) <= 0 &&
+        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
+            ball.dx = -ball.dx;
+            return true;
+        }
+        // ball will cross the right edge
+        if (((ball.x - this.topRightCoords.x) * (ball.x + ball.dx - this.topRightCoords.x)) <= 0 &&
+        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
+            ball.dx = -ball.dx;
+            return true;
+        }
+    }
+    
     draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
-        ctx.rect(this.topLeftCoords.x, this.topLeftCoords.y, this.width, this.height);
+        ctx.rect(this.bottomLeft.x, this.bottomLeft.y, this.width, this.height);
         ctx.fillStyle = this.colour;
         ctx.fill();
         ctx.lineWidth = 1;
@@ -318,6 +342,25 @@ class BlockKeeper {
         this.blocks.forEach(block => block.draw());
     }
 
+    static handleCollisions(ball: Ball): void {
+        let willBounce: boolean = false;
+        for (let i = 0; i < this.blocks.length; i++) {
+            if (this.blocks[i].adjustVspeed(ball)) {
+                willBounce = true;
+                break;
+            }
+        }
+        for (let i = 0; i < this.blocks.length; i++) {
+            if (this.blocks[i].adjustHspeed(ball)) {
+                willBounce = true;
+                break
+            }
+        }
+        if (willBounce) {
+            ball.playNote();
+        }
+    }
+
     static initialize(): void {
         for (let i = 0; i <= 30; i++) {
             // create random blocks at the bottom every 30 pixels
@@ -333,18 +376,6 @@ class BlockKeeper {
         }
     }
 }
-
-
-function eventToXY(event: MouseEvent): Coords {
-    const rect = (event.currentTarget as Element).getBoundingClientRect();
-    const root = document.documentElement;
-    const xC = event.pageX - rect.left - root.scrollLeft;
-    const yC = event.pageY - rect.top - root.scrollTop;
-    return {x: xC, y: yC};
-};
-
-// Generate a random colour
-let ballSoundControlBarWidth = 170;
 
 let gbloink: {
     canvas: HTMLCanvasElement;
@@ -392,7 +423,11 @@ let gbloink: {
         this.canvas.getContext('2d').fillStyle = 'black';
         this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        this.balls.forEach((ball: Ball) => ball.move(this.balls, BlockKeeper.blocks));
+        this.balls.forEach((ball: Ball) => ball.move());
+        this.balls.forEach((ball: Ball) => ball.detectBorderCollision());
+        Ball.allBallsCollide(this.balls);
+        this.balls.forEach((ball: Ball) => BlockKeeper.handleCollisions(ball));
+
         BlockKeeper.drawBlocks();
         this.balls.forEach((ball: Ball) => ball.draw());
     }
