@@ -96,7 +96,6 @@ class Synth {
     constructor(ballName: string, timbre: number) {
         this.midiChannel = Synth.channelDec[ballName];
         this.synth = new WebAudioTinySynth();
-        this.synth.setTsMode(0);
         this.timbre = timbre;
         this.synth.setProgram(0, this.timbre);
 
@@ -210,14 +209,12 @@ class Ball {
 
         // balls collide with blocks
         for (const b of blocks) {
-            // if both if conditions are true, the ball is hitting a corner of the block
-            if (b.contains({ x: tx + this.dx, y: ty + this.dy })) {
-                if (b.contains({ x: tx + this.dx, y: ty })) {
-                    this.dx = -this.dx;
-                }
-                if (b.contains({ x: tx, y: ty + this.dy })) {
-                    this.dy = -this.dy;
-                }
+            if (b.contains({ x: tx + this.dx, y: ty })) {
+                this.dx = -this.dx;
+                this.playNote();
+            }
+            if (b.contains({ x: tx, y: ty + this.dy })) {
+                this.dy = -this.dy;
                 this.playNote();
             }
         }
@@ -404,9 +401,9 @@ let gbloink: {
 
 document.addEventListener("DOMContentLoaded", function () {
     gbloink.init();
-
-    let intervalId = setInterval(() => gbloink.next(), 50);
-    clearInterval(intervalId);
+    gbloink.next();
+    
+    let intervalId: number; 
 
     document.getElementById('startButton').addEventListener('click', function () {
         // Implement your start game logic here
