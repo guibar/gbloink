@@ -1,133 +1,166 @@
-
-function randomColour(): string {
-    const letters = '0123456789ABCDEF'.split('');
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-}
-
-// Class to handle (x, y) coordinates
+/**
+ * Encapsulate a pair of coordinates (x, y) 
+ * 
+ */
 type Coords = {
     x: number;
     y: number;
 }
 
-// Class representing a musical scale, with an array of 12 booleans indicating which
-// notes are in the scale and which are not.
-class Scale {
-    notes: boolean[];
+/** 
+ * Class representing a rectangle shaped obstacle to the balls on the canvas
+*/
+class Block {
+    bottomLeft: Coords;
+    topRightCoords: Coords;
+    width: number;
+    height: number;
+    colour: string;
 
-    constructor(notes: number[]) {
-        this.notes = notes.map((note) => Boolean(note));
-    };
-
-    // We might as well get a random note in the scale? Or have a probability distribution
-    // that favors something close to the previous note.
-    // In the MIDI system C3 = 48, C4 = 60, C5 = 72 with each increment adding a semitone
-    findNextNoteInScale(note: number): number {
-        const noteWithoutOctave = note % 12;
-        // find the number of semitones to the next note in the scale
-        let nbSemiTonesToAdd = 0;
-        // find the first 
-        while (!this.notes[noteWithoutOctave + nbSemiTonesToAdd]) {
-            nbSemiTonesToAdd += 1;
-        }
-        return note + nbSemiTonesToAdd;
-    }
-}
-
-// Class for transforming y-coordinates into MIDI notes
-class ScaleKeeper {
-    currentScaleName: string
-    scales: { [key: string]: Scale };
-
-    constructor() {
-        this.scales = {
-            chromatic: new Scale([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
-            major: new Scale([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1]),
-            minor: new Scale([1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1]),
-            diminished: new Scale([1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1]),
-            arab: new Scale([1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1]),
-            debussy: new Scale([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
-            gypsy: new Scale([1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1]),
-            pent1: new Scale([1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]),
-            pent2: new Scale([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1])
+    constructor(blockCentre: Coords) {
+        // width and height are random in range [5, 55]
+        this.width = 5 + Math.random() * 50;
+        this.height = 5 + Math.random() * 50;
+        this.bottomLeft = {
+            x: blockCentre.x - this.width / 2,
+            y: blockCentre.y - this.height / 2
         };
-
-        this.currentScaleName = 'chromatic';
+        this.topRightCoords = {
+            x: blockCentre.x + this.width / 2,
+            y: blockCentre.y + this.height / 2
+        };
+        this.colour = Block.randomColour();
     }
 
-    setCurrent(currentScaleName: string) {
-        this.currentScaleName = currentScaleName;
-    }
-
-    adjustToCurrentScale(note: number): number {
-        return this.scales[this.currentScaleName].findNextNoteInScale(note);
-    }
-}
-
-const scaleKeeper = new ScaleKeeper();
-
-declare const WebAudioTinySynth: any;
-
-// Each ball has a synth associated with it. The synth is responsible for playing a sound
-// when the ball hits something
-class Synth {
-    static channelDec: { [key: string]: number } = {
-        'redball':  0,
-        'greenball': 1,
-        'blueball': 2,
-    };
-    synth: any;
-    volume: number = 50;
-    delay: number = 50;
-    timbre: number;
-    previousNote: number = 0;
-    midiChannel: number = 0;
-
-    constructor(ballName: string, timbre: number) {
-        this.midiChannel = Synth.channelDec[ballName];
-        this.synth = new WebAudioTinySynth();
-        this.timbre = timbre;
-        this.synth.setProgram(0, this.timbre);
-
-        let volumeSlider = document.getElementById(ballName + '_volume') as HTMLInputElement;
-        volumeSlider.value = this.volume.toString();
-        volumeSlider.addEventListener('input', (event: InputEvent) => {
-            this.volume = parseInt((event.target as HTMLInputElement).value);
-        });
-
-        // remove this code for now, until I find a satisfactory way to handle note duration
-        // let delaySlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
-        // delaySlider.value = this.delay.toString();
-        // delaySlider.addEventListener('input', (event: InputEvent) => {
-        //     this.delay = parseInt((event.target as HTMLInputElement).value);
-        // });
-
-        let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
-        instrumentSlider.value = timbre.toString();
-        instrumentSlider.addEventListener('input', (event: InputEvent) => {
-            console.log('about to set the ball to value', this.midiChannel, parseInt((event.target as HTMLInputElement).value));
-            this.synth.setProgram(this.midiChannel, parseInt((event.target as HTMLInputElement).value));
-        });
-    }
-
-    play(note: number): void {
-        // send a noteOff message for the old note, this shouldn't be needed
-        if (this.previousNote !== null) {
-            this.synth.noteOff(this.midiChannel, this.previousNote);
+    static randomColour(): string {
+        const letters = '0123456789ABCDEF'.split('');
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
         }
-        this.previousNote = note;
+        return color;
+    }
+    
+    contains(point: Coords): boolean {
+        if (point.x < this.bottomLeft.x || point.x > this.topRightCoords.x ||
+            point.y < this.bottomLeft.y || point.y > this.topRightCoords.y) {
+            return false;
+        }
+        return true;
+    }
+    /**
+     * Given a ball, detect if the ball will cross one of the vertical edges of this block
+     * If it does, invert the vertical speed of the ball and return true
+     * @param one of the 3 balls
+     * @returns true if one of the edges of this block would be crossed by the ball 
+     * in the next move if it keeps the same moving direction.
+     */
+    adjustVspeed(ball: Ball): boolean {
+        // y coord of ball would change side of the bottom edge y coord 
+        // and x coord is within the x range of the edge +/- the speed increment
+        if (((ball.y - this.bottomLeft.y) * (ball.y + ball.dx - this.bottomLeft.y)) <= 0 &&
+            this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
+            ball.dy = -ball.dy;
+            return true;
+        }
+        // y coord of ball would change side of the top edge y coord 
+        // and x coord is within the x range of the edge +/- the speed increment
+        else if (((ball.y - this.topRightCoords.y) * (ball.y + ball.dy - this.topRightCoords.y)) <= 0 &&
+        this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
+            ball.dy = -ball.dy;
+            return true;
+        }
+    }
 
-        this.synth.noteOn(this.midiChannel, note, this.volume);
-        this.synth.noteOff(this.midiChannel, note, this.delay);
+    adjustHspeed(ball: Ball): boolean {
+        // ball will cross the left edge
+        if (((ball.x - this.bottomLeft.x) * (ball.x + ball.dx - this.bottomLeft.x)) <= 0 &&
+        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
+            ball.dx = -ball.dx;
+            return true;
+        }
+        // ball will cross the right edge
+        if (((ball.x - this.topRightCoords.x) * (ball.x + ball.dx - this.topRightCoords.x)) <= 0 &&
+        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
+            ball.dx = -ball.dx;
+            return true;
+        }
+    }
+    
+    draw(): void {
+        let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.rect(this.bottomLeft.x, this.bottomLeft.y, this.width, this.height);
+        ctx.fillStyle = this.colour;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
     }
 }
 
+class BlockKeeper {
+    static blocks: Block[] = [];
 
-// Class representing a ball on the canvas
+    static createBlock(centreCoords: Coords) {
+        let b: Block = new Block(centreCoords);
+        BlockKeeper.blocks.push(b);
+        return b;
+    }
+
+    static initialize(): void {
+        for (let i = 0; i <= 30; i++) {
+            // create random blocks at the bottom every 30 pixels
+            BlockKeeper.createBlock({
+                x: i * 30,
+                y: Math.floor(50 + Math.random() * 50)
+            });
+            // create random blocks at the top every 30 pixels
+            BlockKeeper.createBlock({
+                x: i * 30,
+                y: Math.floor(300 + Math.random() * 50)
+            });
+        }
+    }
+
+    static removeOrCreateAt(point: Coords): void {
+        for (let i = 0; i < this.blocks.length; i++) {
+            if (this.blocks[i].contains(point)) {
+                this.blocks.splice(i, 1);
+                return;
+            }
+        }
+        BlockKeeper.createBlock(point);
+    }
+
+    static drawBlocks(): void {
+        this.blocks.forEach(block => block.draw());
+    }
+
+    static handleCollisions(ball: Ball): void {
+        let willBounce: boolean = false;
+        for (let i = 0; i < this.blocks.length; i++) {
+            if (this.blocks[i].adjustVspeed(ball)) {
+                willBounce = true;
+                break;
+            }
+        }
+        for (let i = 0; i < this.blocks.length; i++) {
+            if (this.blocks[i].adjustHspeed(ball)) {
+                willBounce = true;
+                break
+            }
+        }
+        if (willBounce) {
+            ball.playNote();
+        }
+    }
+}
+
+/**
+ * Class representing a ball bouncing around on the canvas
+ * and playing a sound when it hits the border, a block or another ball
+ */
 class Ball {
     static hitDistance: number = 8;
     static radius: number = 5;
@@ -245,137 +278,123 @@ class Ball {
     }
 }
 
+/**
+* Class representing musical scales, with an array of 12 booleans indicating which
+* notes are part of the scale.
+*/
+class Scale {
+    notes: boolean[];
 
-// Class representing a block on the canvas
-class Block {
-    bottomLeft: Coords;
-    topRightCoords: Coords;
-    width: number;
-    height: number;
-    colour: string;
+    constructor(notes: number[]) {
+        this.notes = notes.map((note) => Boolean(note));
+    };
 
-    constructor(blockCentre: Coords) {
-        // width and height are random in range [5, 55]
-        this.width = 5 + Math.random() * 50;
-        this.height = 5 + Math.random() * 50;
-        this.bottomLeft = {
-            x: blockCentre.x - this.width / 2,
-            y: blockCentre.y - this.height / 2
-        };
-        this.topRightCoords = {
-            x: blockCentre.x + this.width / 2,
-            y: blockCentre.y + this.height / 2
-        };
-        this.colour = randomColour();
-    }
-
-    contains(point: Coords): boolean {
-        if (point.x < this.bottomLeft.x || point.x > this.topRightCoords.x ||
-            point.y < this.bottomLeft.y || point.y > this.topRightCoords.y) {
-            return false;
+    // We might as well get a random note in the scale? Or have a probability distribution
+    // that favors something close to the previous note.
+    // In the MIDI system C3 = 48, C4 = 60, C5 = 72 with each increment adding a semitone
+    findNextNoteInScale(note: number): number {
+        const noteWithoutOctave = note % 12;
+        // find the number of semitones to the next note in the scale
+        let nbSemiTonesToAdd = 0;
+        // find the first 
+        while (!this.notes[noteWithoutOctave + nbSemiTonesToAdd]) {
+            nbSemiTonesToAdd += 1;
         }
-        return true;
-    }
-
-    adjustVspeed(ball: Ball): boolean {
-        // ball will cross the bottom edge of this block
-        if (((ball.y - this.bottomLeft.y) * (ball.y + ball.dx - this.bottomLeft.y)) <= 0 &&
-            this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
-            ball.dy = -ball.dy;
-            return true;
-        }
-        // ball will cross the top edge of this block
-        else if (((ball.y - this.topRightCoords.y) * (ball.y + ball.dy - this.topRightCoords.y)) <= 0 &&
-        this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
-            ball.dy = -ball.dy;
-            return true;
-        }
-    }
-
-    adjustHspeed(ball: Ball): boolean {
-        // ball will cross the left edge
-        if (((ball.x - this.bottomLeft.x) * (ball.x + ball.dx - this.bottomLeft.x)) <= 0 &&
-        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
-            ball.dx = -ball.dx;
-            return true;
-        }
-        // ball will cross the right edge
-        if (((ball.x - this.topRightCoords.x) * (ball.x + ball.dx - this.topRightCoords.x)) <= 0 &&
-        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
-            ball.dx = -ball.dx;
-            return true;
-        }
-    }
-    
-    draw(): void {
-        let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
-        ctx.beginPath();
-        ctx.rect(this.bottomLeft.x, this.bottomLeft.y, this.width, this.height);
-        ctx.fillStyle = this.colour;
-        ctx.fill();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'white';
-        ctx.stroke();
+        return note + nbSemiTonesToAdd;
     }
 }
 
-class BlockKeeper {
-    static blocks: Block[] = [];
+// Class for transforming y-coordinates into MIDI notes
+class ScaleKeeper {
+    currentScaleName: string
+    scales: { [key: string]: Scale };
 
-    static createBlock(centreCoords: Coords) {
-        let b: Block = new Block(centreCoords);
-        BlockKeeper.blocks.push(b);
-        return b;
+    constructor() {
+        this.scales = {
+            chromatic: new Scale([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+            major: new Scale([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1]),
+            minor: new Scale([1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1]),
+            diminished: new Scale([1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1]),
+            arab: new Scale([1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1]),
+            debussy: new Scale([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
+            gypsy: new Scale([1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1]),
+            pent1: new Scale([1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]),
+            pent2: new Scale([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1])
+        };
+
+        this.currentScaleName = 'chromatic';
     }
 
-    static removeOrCreateAt(point: Coords): void {
-        for (let i = 0; i < this.blocks.length; i++) {
-            if (this.blocks[i].contains(point)) {
-                this.blocks.splice(i, 1);
-                return;
-            }
-        }
-        this.blocks.push(new Block(point));
+    setCurrent(currentScaleName: string) {
+        this.currentScaleName = currentScaleName;
     }
 
-    static drawBlocks(): void {
-        this.blocks.forEach(block => block.draw());
-    }
-
-    static handleCollisions(ball: Ball): void {
-        let willBounce: boolean = false;
-        for (let i = 0; i < this.blocks.length; i++) {
-            if (this.blocks[i].adjustVspeed(ball)) {
-                willBounce = true;
-                break;
-            }
-        }
-        for (let i = 0; i < this.blocks.length; i++) {
-            if (this.blocks[i].adjustHspeed(ball)) {
-                willBounce = true;
-                break
-            }
-        }
-        if (willBounce) {
-            ball.playNote();
-        }
-    }
-
-    static initialize(): void {
-        for (let i = 0; i <= 30; i++) {
-            // create random blocks at the bottom every 30 pixels
-            this.removeOrCreateAt({
-                x: i * 30,
-                y: Math.floor(50 + Math.random() * 50)
-            });
-            // create random blocks at the top every 30 pixels
-            this.removeOrCreateAt({
-                x: i * 30,
-                y: Math.floor(300 + Math.random() * 50)
-            });
-        }
+    adjustToCurrentScale(note: number): number {
+        return this.scales[this.currentScaleName].findNextNoteInScale(note);
     }
 }
+
+const scaleKeeper = new ScaleKeeper();
+
+declare const WebAudioTinySynth: any;
+/**
+* Each ball has one instance of this class responsible for managing the sound
+* which is played when the ball bounces
+*/
+class Synth {
+    synth: any;
+    volume: number = 50;
+    delay: number = 50;
+    timbre: number;
+    previousNote: number = 0;
+    midiChannel: number = 0;
+
+    static channelDec: { [key: string]: number } = {
+        'redball':  0,
+        'greenball': 1,
+        'blueball': 2,
+    };
+
+    constructor(ballName: string, timbre: number) {
+        this.midiChannel = Synth.channelDec[ballName];
+        this.synth = new WebAudioTinySynth();
+        this.timbre = timbre;
+        this.synth.setProgram(0, this.timbre);
+
+        let volumeSlider = document.getElementById(ballName + '_volume') as HTMLInputElement;
+        volumeSlider.value = this.volume.toString();
+        volumeSlider.addEventListener('input', (event: InputEvent) => {
+            this.volume = parseInt((event.target as HTMLInputElement).value);
+        });
+
+        // remove this code for now, until I find a satisfactory way to handle note duration
+        // let delaySlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
+        // delaySlider.value = this.delay.toString();
+        // delaySlider.addEventListener('input', (event: InputEvent) => {
+        //     this.delay = parseInt((event.target as HTMLInputElement).value);
+        // });
+
+        let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
+        instrumentSlider.value = timbre.toString();
+        instrumentSlider.addEventListener('input', (event: InputEvent) => {
+            console.log('about to set the ball to value', this.midiChannel, parseInt((event.target as HTMLInputElement).value));
+            this.synth.setProgram(this.midiChannel, parseInt((event.target as HTMLInputElement).value));
+        });
+    }
+
+    play(note: number): void {
+        // send a noteOff message for the old note, this shouldn't be needed
+        if (this.previousNote !== null) {
+            this.synth.noteOff(this.midiChannel, this.previousNote);
+        }
+        this.previousNote = note;
+
+        this.synth.noteOn(this.midiChannel, note, this.volume);
+        this.synth.noteOff(this.midiChannel, note, this.delay);
+    }
+}
+
+
 
 let gbloink: {
     canvas: HTMLCanvasElement;
