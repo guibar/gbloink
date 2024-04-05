@@ -349,14 +349,14 @@ class Synth {
     previousNote: number = 0;
     midiChannel: number = 0;
 
-    static channelDec: { [key: string]: number } = {
+    static channelMap: { [key: string]: number } = {
         'redball':  0,
         'greenball': 1,
         'blueball': 2,
     };
 
     constructor(ballName: string, timbre: number) {
-        this.midiChannel = Synth.channelDec[ballName];
+        this.midiChannel = Synth.channelMap[ballName];
         this.synth = new WebAudioTinySynth();
         this.timbre = timbre;
         this.synth.setProgram(0, this.timbre);
@@ -395,20 +395,14 @@ class Synth {
 }
 
 
-
-let gbloink: {
+class Gbloink {
     canvas: HTMLCanvasElement;
-    minWidth: number;
-    minHeight: number;
+    minWidth: number = 400;
+    minHeight: number = 200;
     balls: Ball[];
-    init: () => void;
-    next: () => void;
-} = {
-    canvas: document.getElementById("canvasId") as HTMLCanvasElement,
-    minHeight: 200,
-    minWidth: 400,
-    balls: [],
-    init: function () {
+
+    constructor() {
+        this.canvas = document.getElementById("canvasId") as HTMLCanvasElement;
         if (!this.canvas) {
             throw new Error(`No canvas element found with id canvasId`);
         }
@@ -435,9 +429,9 @@ let gbloink: {
                 y: event.pageY - rect.top - root.scrollTop
             });
         });
-    },
+    }
 
-    next: function () {
+    next(): void {
         // restore the canvas to all black
         this.canvas.getContext('2d').fillStyle = 'black';
         this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -450,11 +444,13 @@ let gbloink: {
         BlockKeeper.drawBlocks();
         this.balls.forEach((ball: Ball) => ball.draw());
     }
-};
+}
 
+//  global scope for gbloink
+let gbloink: Gbloink;
 
-document.addEventListener("DOMContentLoaded", function () {
-    gbloink.init();
+document.addEventListener("DOMContentLoaded", function () { 
+    gbloink = new Gbloink();
     gbloink.next();
     
     let intervalId: number; 
@@ -470,5 +466,3 @@ document.addEventListener("DOMContentLoaded", function () {
         clearInterval(intervalId);
     });
 });
-
-
