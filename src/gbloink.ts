@@ -40,7 +40,7 @@ class Block {
         }
         return color;
     }
-    
+
     contains(point: Coords): boolean {
         if (point.x < this.bottomLeft.x || point.x > this.topRightCoords.x ||
             point.y < this.bottomLeft.y || point.y > this.topRightCoords.y) {
@@ -66,7 +66,7 @@ class Block {
         // y coord of ball would change side of the top edge y coord 
         // and x coord is within the x range of the edge +/- the speed increment
         else if (((ball.y - this.topRightCoords.y) * (ball.y + ball.dy - this.topRightCoords.y)) <= 0 &&
-        this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
+            this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
             ball.dy = -ball.dy;
             return true;
         }
@@ -75,18 +75,18 @@ class Block {
     adjustHspeed(ball: Ball): boolean {
         // ball will cross the left edge
         if (((ball.x - this.bottomLeft.x) * (ball.x + ball.dx - this.bottomLeft.x)) <= 0 &&
-        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
+            this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
             ball.dx = -ball.dx;
             return true;
         }
         // ball will cross the right edge
         if (((ball.x - this.topRightCoords.x) * (ball.x + ball.dx - this.topRightCoords.x)) <= 0 &&
-        this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
+            this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
             ball.dx = -ball.dx;
             return true;
         }
     }
-    
+
     draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
@@ -209,7 +209,7 @@ class Ball {
     // consider all pairwise interactions between balls
     static allBallsCollide(balls: Ball[]): void {
         for (let i = 0; i < balls.length; i++) {
-            for (let j = i+1; j < balls.length; j++) {
+            for (let j = i + 1; j < balls.length; j++) {
                 this.pairBallCollide(balls[i], balls[j]);
             }
         }
@@ -219,7 +219,7 @@ class Ball {
      * |dx| = |dy| so All balls move at the same speed
      * along the x and y axes i.e. on a line of + or - 45 degrees.
      */
-    move() : void {
+    move(): void {
         this.x += this.dx;
         this.y += this.dy;
     }
@@ -350,7 +350,7 @@ class Synth {
     midiChannel: number = 0;
 
     static channelMap: { [key: string]: number } = {
-        'redball':  0,
+        'redball': 0,
         'greenball': 1,
         'blueball': 2,
     };
@@ -414,9 +414,9 @@ class Gbloink {
         }
         // need to make the start coordinates relative to width and height
         this.balls = [
-            new Ball({x: 200, y:200}, '#ff0000', 'redball', 0),
-            new Ball({x: 300, y:200}, '#00ff00', 'greenball', 24),
-            new Ball({x: 360, y:200}, '#0000ff', 'blueball', 44),
+            new Ball({ x: this.canvas.width/8*2, y: this.canvas.height/2 }, '#ff0000', 'redball', 0),
+            new Ball({ x: this.canvas.width/8*3, y: this.canvas.height/2 }, '#00ff00', 'greenball', 24),
+            new Ball({ x: this.canvas.width/8*4, y: this.canvas.height/2 }, '#0000ff', 'blueball', 44),
         ]
         scaleKeeper.setCurrent("major");
 
@@ -435,25 +435,31 @@ class Gbloink {
         // restore the canvas to all black
         this.canvas.getContext('2d').fillStyle = 'black';
         this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        this.balls.forEach((ball: Ball) => ball.move());
-        this.balls.forEach((ball: Ball) => ball.detectBorderCollision());
-        Ball.allBallsCollide(this.balls);
-        this.balls.forEach((ball: Ball) => BlockKeeper.handleCollisions(ball));
-
         BlockKeeper.drawBlocks();
-        this.balls.forEach((ball: Ball) => ball.draw());
-    }
+
+        this.balls.forEach((ball: Ball) => {
+            ball.move(); 
+            ball.detectBorderCollision();
+        });
+
+        Ball.allBallsCollide(this.balls);
+
+        this.balls.forEach((ball: Ball) => {
+            BlockKeeper.handleCollisions(ball);
+            ball.draw();
+        });
+
+     }
 }
 
 //  global scope for gbloink
 let gbloink: Gbloink;
 
-document.addEventListener("DOMContentLoaded", function () { 
+document.addEventListener("DOMContentLoaded", function () {
     gbloink = new Gbloink();
     gbloink.next();
-    
-    let intervalId: number; 
+
+    let intervalId: number;
 
     document.getElementById('startButton').addEventListener('click', function () {
         // Implement your start game logic here
