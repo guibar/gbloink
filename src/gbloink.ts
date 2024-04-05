@@ -58,31 +58,31 @@ class Block {
     adjustVspeed(ball: Ball): boolean {
         // y coord of ball would change side of the bottom edge y coord 
         // and x coord is within the x range of the edge +/- the speed increment
-        if (((ball.y - this.bottomLeft.y) * (ball.y + ball.dx - this.bottomLeft.y)) <= 0 &&
-            this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
-            ball.dy = -ball.dy;
+        if (((ball.position.y - this.bottomLeft.y) * (ball.position.y + ball.speed.x - this.bottomLeft.y)) <= 0 &&
+            this.bottomLeft.x - ball.speed.x <= ball.position.x && ball.position.x <= this.topRightCoords.x + ball.speed.x) {
+            ball.speed.y = -ball.speed.y;
             return true;
         }
         // y coord of ball would change side of the top edge y coord 
         // and x coord is within the x range of the edge +/- the speed increment
-        else if (((ball.y - this.topRightCoords.y) * (ball.y + ball.dy - this.topRightCoords.y)) <= 0 &&
-            this.bottomLeft.x - ball.dx <= ball.x && ball.x <= this.topRightCoords.x + ball.dx) {
-            ball.dy = -ball.dy;
+        else if (((ball.position.y - this.topRightCoords.y) * (ball.position.y + ball.speed.y - this.topRightCoords.y)) <= 0 &&
+            this.bottomLeft.x - ball.speed.x <= ball.position.x && ball.position.x <= this.topRightCoords.x + ball.speed.x) {
+            ball.speed.y = -ball.speed.y;
             return true;
         }
     }
 
     adjustHspeed(ball: Ball): boolean {
         // ball will cross the left edge
-        if (((ball.x - this.bottomLeft.x) * (ball.x + ball.dx - this.bottomLeft.x)) <= 0 &&
-            this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
-            ball.dx = -ball.dx;
+        if (((ball.position.x - this.bottomLeft.x) * (ball.position.x + ball.speed.x - this.bottomLeft.x)) <= 0 &&
+            this.bottomLeft.y - ball.speed.y <= ball.position.y && ball.position.y <= this.topRightCoords.y + ball.speed.y) {
+            ball.speed.x = -ball.speed.x;
             return true;
         }
         // ball will cross the right edge
-        if (((ball.x - this.topRightCoords.x) * (ball.x + ball.dx - this.topRightCoords.x)) <= 0 &&
-            this.bottomLeft.y - ball.dy <= ball.y && ball.y <= this.topRightCoords.y + ball.dy) {
-            ball.dx = -ball.dx;
+        if (((ball.position.x - this.topRightCoords.x) * (ball.position.x + ball.speed.x - this.topRightCoords.x)) <= 0 &&
+            this.bottomLeft.y - ball.speed.y <= ball.position.y && ball.position.y <= this.topRightCoords.y + ball.speed.y) {
+            ball.speed.x = -ball.speed.x;
             return true;
         }
     }
@@ -165,40 +165,44 @@ class Ball {
     static hitDistance: number = 8;
     static radius: number = 5;
     name: string;
-    x: number;
-    y: number;
+    position: Coords;
+    // x: number;
+    // y: number;
     colour: string;
     synth: Synth;
-    dx: number;
-    dy: number;
+    speed: Coords;
+    // dx: number;
+    // dy: number;
 
     constructor(c: Coords, colour: string, name: string, timbre: number) {
         this.name = name;
-        this.x = c.x;
-        this.y = c.y;
+        this.position = c;
+        // this.x = c.x;
+        // this.y = c.y;
         this.colour = colour;
         this.synth = new Synth(name, timbre);
-        this.dx = 2;
-        this.dy = 2;
+        this.speed = { x: 2, y: 2 };
+        // this.dx = 2;
+        // this.dy = 2;
 
         let speedSlider = document.getElementById(name + '_speed') as HTMLInputElement;
-        speedSlider.value = this.dx.toString();
+        speedSlider.value = this.speed.x.toString();
         speedSlider.addEventListener('input', this.handleSpeedChangeEvent.bind(this));
     }
 
     static pairBallCollide(b1: Ball, b2: Ball): boolean {
         // if the balls are too far away on either dimension,
-        if (Math.abs(b1.x - b2.x) > Ball.hitDistance || Math.abs(b1.y - b2.y) > Ball.hitDistance) {
+        if (Math.abs(b1.position.x - b2.position.x) > Ball.hitDistance || Math.abs(b1.position.y - b2.position.y) > Ball.hitDistance) {
             return false;
         } // else the balls are colliding
         // if they are moving on opposite directions in x, reverse the x speed of both
-        if (b1.dx * b2.dx < 0) {
-            b1.dx = -b1.dx;
-            b2.dx = -b2.dx;
+        if (b1.speed.x * b2.speed.x < 0) {
+            b1.speed.x *= -1;
+            b2.speed.x *= -1;
         } // if they are moving on opposite directions in y, reverse the y speed of both
-        if (b1.dy * b2.dy < 0) {
-            b1.dy = -b1.dy;
-            b2.dy = -b2.dy;
+        if (b1.speed.y * b2.speed.y < 0) {
+            b1.speed.y *= -1;
+            b2.speed.y *= -1;
         }
         // the case where they are moving in the same direction but one is faster is not handled
         b1.playNote();
@@ -220,21 +224,21 @@ class Ball {
      * along the x and y axes i.e. on a line of + or - 45 degrees.
      */
     move(): void {
-        this.x += this.dx;
-        this.y += this.dy;
+        this.position.x += this.speed.x;
+        this.position.y += this.speed.y;
     }
     /**
      * Adjust speed and make sound if ball is heading towards a border
      */
     detectBorderCollision(): void {
         let flag: boolean = false;
-        if (this.x < 3 || this.x > gbloink.canvas.width - 3) {
-            this.dx = -this.dx;
+        if (this.position.x < 3 || this.position.x > gbloink.canvas.width - 3) {
+            this.speed.x *= -1;
             flag = true;
         }
 
-        if (this.y < 3 || this.y > gbloink.canvas.height - 3) {
-            this.dy = -this.dy;
+        if (this.position.y < 3 || this.position.y > gbloink.canvas.height - 3) {
+            this.speed.y *= -1;
             flag = true;
         }
 
@@ -248,21 +252,24 @@ class Ball {
      * @param a y coordinate on the canvas
      * @returns a note in the MIDI format 
      */
-    mapYtoNote(y: number): number {
-        return Math.floor(((gbloink.canvas.height - y) / 6) + 30);
+    getRawNote(): number {
+        return Math.floor(((gbloink.canvas.height - this.position.y) / 6) + 30);
     }
     /**
      * Play a note corresponding to the y coordinate of the ball adjusted
      * to belong to the current scale
      */
     playNote(): void {
-        this.synth.play(scaleKeeper.adjustToCurrentScale(this.mapYtoNote(this.y)));
+        this.synth.play(scaleKeeper.adjustToCurrentScale(this.getRawNote()));
     }
-
+    /**
+     * Adjust the magnitude of the speed of the ball, keeping the same direction. 
+     * @param event the input event that triggered the change
+     */
     handleSpeedChangeEvent(event: InputEvent): void {
         const speed = parseInt((event.target as HTMLInputElement).value);
-        this.dx = speed * Math.sign(this.dx);
-        this.dy = speed * Math.sign(this.dy);
+        this.speed.x = speed * Math.sign(this.speed.x);
+        this.speed.y = speed * Math.sign(this.speed.y);
     }
 
     /**
@@ -271,7 +278,7 @@ class Ball {
     draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
         ctx.beginPath();
-        ctx.arc(this.x, this.y, Ball.radius, 0, 2 * Math.PI);
+        ctx.arc(this.position.x, this.position.y, Ball.radius, 0, 2 * Math.PI);
         ctx.fillStyle = this.colour;
         ctx.fill();
         ctx.stroke();
