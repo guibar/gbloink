@@ -16,24 +16,16 @@ class Block {
     width: number;
     height: number;
     colour: string;
-    
     static strokeStyle: string = 'white';
 
-    constructor(blockCentre: Coords) {
-        // width and height are random in range [5, 55]
-        this.width = 5 + Math.random() * 50;
-        this.height = 5 + Math.random() * 50;
-        this.bottomLeft = {
-            x: blockCentre.x - this.width / 2,
-            y: blockCentre.y - this.height / 2
-        };
-        this.topRightCoords = {
-            x: blockCentre.x + this.width / 2,
-            y: blockCentre.y + this.height / 2
-        };
-        this.colour = Block.randomColour();
+    constructor(bottomLeft: Coords, topRight: Coords, colour: string) {
+        this.bottomLeft = bottomLeft;
+        this.topRightCoords = topRight;
+        this.width = topRight.x - bottomLeft.x;
+        this.height = topRight.y - bottomLeft.y;
+        this.colour = colour;
     }
-
+    
     static randomColour(): string {
         const letters = '0123456789ABCDEF'.split('');
         let color = '#';
@@ -104,23 +96,36 @@ class Block {
 class BlockKeeper {
     static blocks: Block[] = [];
 
-    static createBlock(centreCoords: Coords) {
-        let b: Block = new Block(centreCoords);
+    static addRandomSizeBlock(centreCoords: Coords) {
+        // width and height are random in range [5, 55]
+        let width = 5  + Math.random() * 50;
+        let height = 5 + Math.random() * 50;
+        let bottomLeft = {
+            x: centreCoords.x - width / 2,
+            y: centreCoords.y - height / 2
+        };
+        let topRightCoords = {
+            x: centreCoords.x + width / 2,
+            y: centreCoords.y + height / 2
+        };
+        let b: Block = new Block(bottomLeft, topRightCoords, Block.randomColour());
         BlockKeeper.blocks.push(b);
         return b;
     }
 
-    static createRandomBlocks(): void {
-        for (let i = 0; i <= 30; i++) {
+    static addSomeRandomBlocks(nbOfBlocks: number): void {
+        let xStep = gbloink.width / nbOfBlocks * 2;
+        for (let i = 0; i <= nbOfBlocks/2; i++) {
             // create random blocks at the bottom every 30 pixels
-            BlockKeeper.createBlock({
-                x: i * 30,
-                y: Math.floor(50 + Math.random() * 50)
+            BlockKeeper.addRandomSizeBlock({
+                x: i * xStep,
+                y: 50 + Math.floor(Math.random() * 50)
+                
             });
             // create random blocks at the top every 30 pixels
-            BlockKeeper.createBlock({
-                x: i * 30,
-                y: Math.floor(300 + Math.random() * 50)
+            BlockKeeper.addRandomSizeBlock({
+                x: i * xStep,
+                y: (gbloink.height - 50) - Math.floor(Math.random() * 50)
             });
         }
     }
@@ -132,10 +137,10 @@ class BlockKeeper {
                 return;
             }
         }
-        BlockKeeper.createBlock(point);
+        BlockKeeper.addRandomSizeBlock(point);
     }
 
-    static drawBlocks(): void {
+    static drawAllBlocks(): void {
         // erase the block canvas
         gbloink.getBlockDrawingContext(true);
         this.blocks.forEach(block => block.draw());
@@ -445,7 +450,6 @@ class Gbloink {
         this.blockCanvas.height = this.height;
         this.ballCanvas.height = this.height;
 
-        BlockKeeper.initialize();
 
         this.scaleKeeper = new ScaleKeeper('major');
 
@@ -464,7 +468,7 @@ class Gbloink {
                 x: event.pageX - rect.left - root.scrollLeft,
                 y: event.pageY - rect.top - root.scrollTop
             });
-            BlockKeeper.drawBlocks();
+            BlockKeeper.drawAllBlocks();
         });
     }
 
@@ -484,7 +488,8 @@ class Gbloink {
     }
 
     init(): void {
-        BlockKeeper.drawBlocks();
+        BlockKeeper.addSomeRandomBlocks(60);
+        BlockKeeper.drawAllBlocks();
         this.balls.forEach((ball: Ball) => {
             ball.draw();
         });
