@@ -16,6 +16,8 @@ class Block {
     width: number;
     height: number;
     colour: string;
+    
+    static strokeStyle: string = 'white';
 
     constructor(blockCentre: Coords) {
         // width and height are random in range [5, 55]
@@ -88,13 +90,13 @@ class Block {
     }
 
     draw(): void {
-        let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
+        let ctx: CanvasRenderingContext2D = gbloink.getBlockDrawingContext();
         ctx.beginPath();
         ctx.rect(this.bottomLeft.x, this.bottomLeft.y, this.width, this.height);
         ctx.fillStyle = this.colour;
         ctx.fill();
         ctx.lineWidth = 1;
-        ctx.strokeStyle = 'white';
+        ctx.strokeStyle = Block.strokeStyle;
         ctx.stroke();
     }
 }
@@ -134,6 +136,8 @@ class BlockKeeper {
     }
 
     static drawBlocks(): void {
+        // erase the block canvas
+        gbloink.getBlockDrawingContext(true);
         this.blocks.forEach(block => block.draw());
     }
 
@@ -232,12 +236,12 @@ class Ball {
      */
     detectBorderCollision(): void {
         let flag: boolean = false;
-        if (this.position.x < 3 || this.position.x > gbloink.canvas.width - 3) {
+        if (this.position.x < 3 || this.position.x > gbloink.ballCanvas.width - 3) {
             this.speed.x *= -1;
             flag = true;
         }
 
-        if (this.position.y < 3 || this.position.y > gbloink.canvas.height - 3) {
+        if (this.position.y < 3 || this.position.y > gbloink.ballCanvas.height - 3) {
             this.speed.y *= -1;
             flag = true;
         }
@@ -253,14 +257,14 @@ class Ball {
      * @returns a note in the MIDI format 
      */
     getRawNote(): number {
-        return Math.floor(((gbloink.canvas.height - this.position.y) / 6) + 30);
+        return Math.floor(((gbloink.ballCanvas.height - this.position.y) / 6) + 30);
     }
     /**
      * Play a note corresponding to the y coordinate of the ball adjusted
      * to belong to the current scale
      */
     playNote(): void {
-        this.synth.play(scaleKeeper.adjustToCurrentScale(this.getRawNote()));
+        this.synth.play(gbloink.scaleKeeper.adjustToCurrentScale(this.getRawNote()));
     }
     /**
      * Adjust the magnitude of the speed of the ball, keeping the same direction. 
@@ -276,11 +280,12 @@ class Ball {
      * Draw the ball on the canvas as a full circle of the correct color
      */
     draw(): void {
-        let ctx: CanvasRenderingContext2D = gbloink.canvas.getContext('2d');
+        let ctx: CanvasRenderingContext2D = gbloink.getBallDrawingContext();
         ctx.beginPath();
         ctx.arc(this.position.x, this.position.y, Ball.radius, 0, 2 * Math.PI);
         ctx.fillStyle = this.colour;
         ctx.fill();
+        ctx.strokeStyle = 'white';
         ctx.stroke();
     }
 }
@@ -313,10 +318,10 @@ class Scale {
 
 // Class for transforming y-coordinates into MIDI notes
 class ScaleKeeper {
-    currentScaleName: string
+    currentScale: string
     scales: { [key: string]: Scale };
 
-    constructor() {
+    constructor(scale: string) {
         this.scales = {
             chromatic: new Scale([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
             major: new Scale([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1]),
@@ -328,20 +333,22 @@ class ScaleKeeper {
             pent1: new Scale([1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]),
             pent2: new Scale([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1])
         };
-
-        this.currentScaleName = 'chromatic';
+        this.currentScale = 'chromatic';
+        if (scale in this.scales) {
+            this.currentScale = scale;
+        }
     }
 
-    setCurrent(currentScaleName: string) {
-        this.currentScaleName = currentScaleName;
+    setCurrent(newScale: string) {
+        if (newScale in this.scales) {
+            this.currentScale = newScale;
+        }
     }
 
     adjustToCurrentScale(note: number): number {
-        return this.scales[this.currentScaleName].findNextNoteInScale(note);
+        return this.scales[this.currentScale].findNextNoteInScale(note);
     }
 }
-
-const scaleKeeper = new ScaleKeeper();
 
 declare const WebAudioTinySynth: any;
 /**
@@ -403,59 +410,85 @@ class Synth {
 
 
 class Gbloink {
-    canvas: HTMLCanvasElement;
-    minWidth: number = 400;
-    minHeight: number = 200;
+    blockCanvas: HTMLCanvasElement;
+    ballCanvas: HTMLCanvasElement
+    width: number = 400;
+    height: number = 200;
     balls: Ball[];
+    scaleKeeper: ScaleKeeper;
 
     constructor() {
-        this.canvas = document.getElementById("canvasId") as HTMLCanvasElement;
-        if (!this.canvas) {
-            throw new Error(`No canvas element found with id canvasId`);
-        }
-        if (this.canvas.width < this.minWidth || this.canvas.height < this.minHeight) {
-            throw new Error(`Minimum width or height not respected in canvas`);
-        }
-        if (!this.canvas.getContext('2d')) {
-            throw new Error('Unable to get 2D context from canvas');
-        }
-        // need to make the start coordinates relative to width and height
-        this.balls = [
-            new Ball({ x: this.canvas.width/8*2, y: this.canvas.height/2 }, '#ff0000', 'redball', 0),
-            new Ball({ x: this.canvas.width/8*3, y: this.canvas.height/2 }, '#00ff00', 'greenball', 24),
-            new Ball({ x: this.canvas.width/8*4, y: this.canvas.height/2 }, '#0000ff', 'blueball', 44),
-        ]
-        scaleKeeper.setCurrent("major");
+        this.blockCanvas = document.getElementById("block-canvas") as HTMLCanvasElement;
+        this.ballCanvas = document.getElementById("ball-canvas") as HTMLCanvasElement;
+        
+        // set the width and height of both canvas to be the same and defined by the div element containing the canvas
+        this.width = document.getElementById("play-area").clientWidth;
+        this.blockCanvas.width = this.width;
+        this.ballCanvas.width = this.width;
+
+        this.height = document.getElementById("play-area").clientHeight;
+        this.blockCanvas.height = this.height;
+        this.ballCanvas.height = this.height;
 
         BlockKeeper.initialize();
-        this.canvas.addEventListener('mouseup', (event: MouseEvent) => {
-            const rect = this.canvas.getBoundingClientRect();
+
+        this.scaleKeeper = new ScaleKeeper('major');
+
+        this.balls = [
+            new Ball({ x: this.blockCanvas.width/8*2, y: this.blockCanvas.height/2 }, '#ff0000', 'redball', 0),
+            new Ball({ x: this.blockCanvas.width/8*3, y: this.blockCanvas.height/2 }, '#00ff00', 'greenball', 24),
+            new Ball({ x: this.blockCanvas.width/8*4, y: this.blockCanvas.height/2 }, '#0000ff', 'blueball', 44),
+        ]
+
+        // Put the event listener on the ball canvas as it is on top of the block canvas but pass
+        // events to the BlockKeeper to handle the block creation/deletion
+        this.ballCanvas.addEventListener('mouseup', (event: MouseEvent) => {
+            const rect = this.ballCanvas.getBoundingClientRect();
             const root = document.documentElement;
             BlockKeeper.removeOrCreateAt({
                 x: event.pageX - rect.left - root.scrollLeft,
                 y: event.pageY - rect.top - root.scrollTop
             });
+            BlockKeeper.drawBlocks();
         });
     }
 
-    next(): void {
-        // restore the canvas to all black
-        this.canvas.getContext('2d').fillStyle = 'black';
-        this.canvas.getContext('2d').fillRect(0, 0, this.canvas.width, this.canvas.height);
-        BlockKeeper.drawBlocks();
+    getBlockDrawingContext(refresh: boolean = false): CanvasRenderingContext2D {
+        let ctx: CanvasRenderingContext2D = this.blockCanvas.getContext('2d');
+        if (refresh) {
+            ctx.clearRect(0, 0, this.width, this.height);
+        }
+        return ctx;
+    }
+    getBallDrawingContext(refresh:boolean = false): CanvasRenderingContext2D {
+        let ctx: CanvasRenderingContext2D = this.ballCanvas.getContext('2d');
+        if (refresh) {
+            ctx.clearRect(0, 0, this.width, this.height);
+        }
+        return ctx;
+    }
 
+    init(): void {
+        BlockKeeper.drawBlocks();
+        this.balls.forEach((ball: Ball) => {
+            ball.draw();
+        });
+    }
+
+    updateBalls(): void {
+        // erase ball canvas
+        this.getBallDrawingContext(true);
         this.balls.forEach((ball: Ball) => {
             ball.move(); 
             ball.detectBorderCollision();
         });
 
         Ball.allBallsCollide(this.balls);
-
+        
         this.balls.forEach((ball: Ball) => {
             BlockKeeper.handleCollisions(ball);
             ball.draw();
         });
-
      }
 }
 
@@ -464,14 +497,14 @@ let gbloink: Gbloink;
 
 document.addEventListener("DOMContentLoaded", function () {
     gbloink = new Gbloink();
-    gbloink.next();
+    gbloink.init();
 
     let intervalId: number;
 
     document.getElementById('startButton').addEventListener('click', function () {
         // Implement your start game logic here
         clearInterval(intervalId);
-        intervalId = setInterval(() => gbloink.next(), 50);
+        intervalId = setInterval(() => gbloink.updateBalls(), 50);
     });
 
     document.getElementById('stopButton').addEventListener('click', function () {

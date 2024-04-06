@@ -6,26 +6,7 @@ body {
 #controls {
     margin: 3px;
     padding: 3px;
-}
-
-#control_right {
-    margin: 3px;
-    padding: 3px;
-}
-
-.control_bar {
-    border: 1px solid #cccccc;
-    margin: 2px;
-}
-
- 
-
-
-#redcontrol .control_bar { background-color:#ff0000; }
-#greencontrol .control_bar { background-color:#00ff00; }
-#bluecontrol .control_bar { background-color:#0000ff; }
- 
-
+} 
 .red { background-color: #ff0000; }
 .green { background-color: #00ff00; }
 .blue { background-color: #0000ff; }
@@ -36,7 +17,7 @@ nav {
     padding: 1em;
     background-color: #333;
     color: white;
-    width=100%;
+    width: 100%;
 }
 
 nav a {
@@ -50,15 +31,30 @@ nav img {
     margin-right: 10px;
 }
 
-
- 
-
 main {
     display: block;
 }
 
 #play-area {
+    width: 800px;
+    height: 400px;
+    background-color: black;
     flex: none;
+    position: relative;
+    text-align: center;
+}
+
+canvas {
+    position: absolute;
+    left: 0px;
+}
+
+#ball-canvas {
+    z-index: 2;
+}
+
+#block-canvas {
+    z-index: 1;
 }
 
 #controls {
@@ -68,16 +64,5 @@ main {
 #container {
     max-width: 800px;
     margin: 0 auto;
-}
-
-#play-area {
-    text-align: center;
-}
-
-/* Responsive design for narrow screens */
-@media (max-width: 768px) {
-    main {
-        flex-direction: column;
-    }
 }
  
