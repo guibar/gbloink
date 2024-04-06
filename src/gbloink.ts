@@ -110,7 +110,7 @@ class BlockKeeper {
         return b;
     }
 
-    static initialize(): void {
+    static createRandomBlocks(): void {
         for (let i = 0; i <= 30; i++) {
             // create random blocks at the bottom every 30 pixels
             BlockKeeper.createBlock({
@@ -194,19 +194,34 @@ class Ball {
         speedSlider.addEventListener('input', this.handleSpeedChangeEvent.bind(this));
     }
 
-    static pairBallCollide(b1: Ball, b2: Ball): boolean {
-        // if the balls are too far away on either dimension,
-        if (Math.abs(b1.position.x - b2.position.x) > Ball.hitDistance || Math.abs(b1.position.y - b2.position.y) > Ball.hitDistance) {
+    static handleBallPairCollision(b1: Ball, b2: Ball): boolean {
+        let dx = Math.abs(b1.position.x - b2.position.x);
+        let dy = Math.abs(b1.position.y - b2.position.y);
+
+        // if the balls are too far away on both dimensions,
+        if (dx > Ball.hitDistance || dy > Ball.hitDistance) {
             return false;
-        } // else the balls are colliding
-        // if they are moving on opposite directions in x, reverse the x speed of both
-        if (b1.speed.x * b2.speed.x < 0) {
-            b1.speed.x *= -1;
-            b2.speed.x *= -1;
-        } // if they are moving on opposite directions in y, reverse the y speed of both
-        if (b1.speed.y * b2.speed.y < 0) {
-            b1.speed.y *= -1;
-            b2.speed.y *= -1;
+        } // else, balls will collide
+        // if they are moving on opposite directions in both x and y, 
+        // reverse the y speed if they are more aligned on the x axis and vice-versa
+        // If they are equally aligned on x and y, reverse both speeds (both if clauses apply )
+        if (b1.speed.x * b2.speed.x < 0 && b1.speed.y * b2.speed.y < 0) {
+            if (dx >= dy) {
+                b1.speed.x *= -1;
+                b2.speed.x *= -1;
+            } 
+            if (dx <= dy) {
+                b1.speed.y *= -1;
+                b2.speed.y *= -1;
+            }
+        } else {  // if they are only opposed in speed in one dimension, reverse the speed of both balls in that dimension
+            if (b1.speed.y * b2.speed.y < 0) {
+                b1.speed.y *= -1;
+                b2.speed.y *= -1;
+            } else if (b1.speed.x * b2.speed.x < 0) {
+                b1.speed.x *= -1;
+                b2.speed.x *= -1;
+            }
         }
         // the case where they are moving in the same direction but one is faster is not handled
         b1.playNote();
@@ -218,7 +233,7 @@ class Ball {
     static allBallsCollide(balls: Ball[]): void {
         for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
-                this.pairBallCollide(balls[i], balls[j]);
+                this.handleBallPairCollision(balls[i], balls[j]);
             }
         }
     }
