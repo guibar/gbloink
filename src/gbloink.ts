@@ -113,9 +113,9 @@ class BlockKeeper {
         return b;
     }
 
-    static addSomeRandomBlocks(nbOfBlocks: number): void {
-        let xStep = gbloink.width / nbOfBlocks * 2;
-        for (let i = 0; i <= nbOfBlocks/2; i++) {
+    static addSomeRandomBlocks(nbOfBlocksPerRow: number): void {
+        let xStep = gbloink.width / nbOfBlocksPerRow * 2;
+        for (let i = 0; i <= nbOfBlocksPerRow; i++) {
             // create random blocks at the bottom every 30 pixels
             BlockKeeper.addRandomSizeBlock({
                 x: i * xStep,
@@ -378,7 +378,7 @@ declare const WebAudioTinySynth: any;
 class Synth {
     synth: any;
     volume: number = 50;
-    delay: number = 50;
+    delay: number = 1;
     timbre: number;
     previousNote: number = 0;
     midiChannel: number = 0;
@@ -488,7 +488,7 @@ class Gbloink {
     }
 
     init(): void {
-        BlockKeeper.addSomeRandomBlocks(60);
+        BlockKeeper.addSomeRandomBlocks(30);
         BlockKeeper.drawAllBlocks();
         this.balls.forEach((ball: Ball) => {
             ball.draw();
