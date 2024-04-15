@@ -3,24 +3,16 @@ Gbloink!
 
 *Gbloink! ... in the browser!*
 
-First draft, thanks to MudCube's fantastic MIDI.js library.
-
+This is a fork from Phil John's gbloink. This aim was to practice my typescript skills on something.
+And maybe to try some other Midi libraries because the current one doesn't seem to be working so well.
 
 What the Hell?
 ==============
 
-[Try it here](http://gbloink.com/bs/assets/alpha/index.html)
 
-[Main Site](http://gbloink.com)
+[Phil John's Main Site](http://gbloink.com)
 
 
-Quick Start
-===========
-    git clone https://github.com/interstar/gbloink.git gbloink
-    cd gbloink
-    firefox index.html
-    
-    
     
 
 
