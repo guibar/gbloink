@@ -206,8 +206,8 @@ class Ball {
         return true;
     }
 
-    // consider all pairwise interactions between balls
-    static allBallsCollide(balls: Ball[]): void {
+    // consider the 3 (unordered) pairwise interactions between balls
+    static handleBallsCollision(balls: Ball[]): void {
         for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
                 this.handleBallPairCollision(balls[i], balls[j]);
@@ -475,7 +475,7 @@ class Gbloink {
             ball.detectBorderCollision();
         });
 
-        Ball.allBallsCollide(this.balls);
+        Ball.handleBallsCollision(this.balls);
         
         this.balls.forEach((ball: Ball) => {
             BlockKeeper.handleCollisions(ball);
