@@ -383,8 +383,8 @@ class Synth {
         let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
         instrumentSlider.value = timbre.toString();
         instrumentSlider.addEventListener('input', (event: InputEvent) => {
-            console.log('about to set the ball to value', this.midiChannel, parseInt((event.target as HTMLInputElement).value));
-            this.synth.setProgram(this.midiChannel, parseInt((event.target as HTMLInputElement).value));
+            this.timbre = this.midiChannel, parseInt((event.target as HTMLInputElement).value);
+            this.synth.setProgram(this.midiChannel, this.timbre);
         });
     }
 
