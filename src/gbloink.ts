@@ -33,15 +33,6 @@ class Block {
         this.colour = colour;
     }
     
-    static randomColour(): string {
-        const letters = '0123456789ABCDEF'.split('');
-        let color = '#';
-        for (let i = 0; i < 6; i++) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
-    }
-
     contains(point: Coords): boolean {
         if (point.x < this.bottomLeft.x || point.x > this.topRightCoords.x ||
             point.y < this.bottomLeft.y || point.y > this.topRightCoords.y) {
@@ -87,23 +78,6 @@ class Block {
 class BlockKeeper {
     static blocks: Block[] = [];
 
-    static addRandomSizeBlock(centreCoords: Coords) {
-        // width and height are random in range [5, 55]
-        let width = 5  + Math.random() * 50;
-        let height = 5 + Math.random() * 50;
-        let bottomLeft = {
-            x: centreCoords.x - width / 2,
-            y: centreCoords.y - height / 2
-        };
-        let topRightCoords = {
-            x: centreCoords.x + width / 2,
-            y: centreCoords.y + height / 2
-        };
-        let b: Block = new Block(bottomLeft, topRightCoords, Block.randomColour());
-        BlockKeeper.blocks.push(b);
-        return b;
-    }
-
     static addSomeRandomBlocks(nbOfBlocksPerRow: number): void {
         let xStep = gbloink.width / nbOfBlocksPerRow * 2;
         for (let i = 0; i <= nbOfBlocksPerRow; i++) {
@@ -119,6 +93,31 @@ class BlockKeeper {
                 y: (gbloink.height - 50) - Math.floor(Math.random() * 50)
             });
         }
+    }
+
+    static addRandomSizeBlock(centreCoords: Coords): void {
+        // width and height are random in range [5, 55]
+        let width = 5  + Math.random() * 50;
+        let height = 5 + Math.random() * 50;
+        let bottomLeft = {
+            x: centreCoords.x - width / 2,
+            y: centreCoords.y - height / 2
+        };
+        let topRightCoords = {
+            x: centreCoords.x + width / 2,
+            y: centreCoords.y + height / 2
+        };
+        let b: Block = new Block(bottomLeft, topRightCoords, BlockKeeper.randomColour());
+        BlockKeeper.blocks.push(b);
+    }
+
+    static randomColour(): string {
+        const letters = '0123456789ABCDEF'.split('');
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
     }
 
     static removeOrCreateAt(point: Coords): void {
