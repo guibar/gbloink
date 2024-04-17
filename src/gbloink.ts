@@ -99,7 +99,7 @@ class BlockKeeper {
         // width and height are random in range [5, 55]
         let width = 5  + Math.random() * 50;
         let height = 5 + Math.random() * 50;
-        let bottomLeft = {
+        let bottomLeftCoords = {
             x: centreCoords.x - width / 2,
             y: centreCoords.y - height / 2
         };
@@ -107,7 +107,7 @@ class BlockKeeper {
             x: centreCoords.x + width / 2,
             y: centreCoords.y + height / 2
         };
-        let b: Block = new Block(bottomLeft, topRightCoords, BlockKeeper.randomColour());
+        let b: Block = new Block(bottomLeftCoords, topRightCoords, BlockKeeper.randomColour());
         BlockKeeper.blocks.push(b);
     }
 
