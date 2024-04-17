@@ -293,7 +293,7 @@ class Ball {
      * to belong to the current scale
      */
     playNote(): void {
-        this.synth.play(gbloink.scaleKeeper.adjustToCurrentScale(this.getRawNote()));
+        this.synth.play(ScaleKeeper.adjustToCurrentScale(this.getRawNote()));
     }
     /**
      * Adjust the magnitude of the speed of the ball, keeping the same direction. 
@@ -338,7 +338,7 @@ class Scale {
         // find the number of semitones to the next note in the scale
         let nbSemiTonesToAdd = 0;
         // find the first 
-        while (!this.notes[noteWithoutOctave + nbSemiTonesToAdd]) {
+        while (!this.notes[(noteWithoutOctave + nbSemiTonesToAdd)%12]) {
             nbSemiTonesToAdd += 1;
         }
         return note + nbSemiTonesToAdd;
@@ -347,10 +347,10 @@ class Scale {
 
 // Class for transforming y-coordinates into MIDI notes
 class ScaleKeeper {
-    currentScale: string
-    scales: { [key: string]: Scale };
+    static currentScale: string
+    static scales: { [key: string]: Scale };
 
-    constructor(scale: string) {
+    static init() {
         this.scales = {
             chromatic: new Scale([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
             major: new Scale([1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1]),
@@ -362,19 +362,16 @@ class ScaleKeeper {
             pent1: new Scale([1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]),
             pent2: new Scale([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1])
         };
-        this.currentScale = 'chromatic';
-        if (scale in this.scales) {
-            this.currentScale = scale;
-        }
+        this.currentScale = 'major';
     }
 
-    setCurrent(newScale: string) {
+    static setCurrent(newScale: string) {
         if (newScale in this.scales) {
             this.currentScale = newScale;
         }
     }
 
-    adjustToCurrentScale(note: number): number {
+    static adjustToCurrentScale(note: number): number {
         return this.scales[this.currentScale].findNextNoteInScale(note);
     }
 }
@@ -460,7 +457,7 @@ class Gbloink {
         this.ballCanvas.height = this.height;
 
 
-        this.scaleKeeper = new ScaleKeeper('major');
+        ScaleKeeper.init();
 
         this.balls = [
             new Ball({ x: this.blockCanvas.width/8*2, y: this.blockCanvas.height/2 }, '#ff0000', 'redball', 0),
