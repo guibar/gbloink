@@ -75,8 +75,27 @@ class Block {
     }
 }
 
+declare const RBush: any;
+
+/**
+ * By extending RBush this way, I can directly add and remove blocks from the index.
+ */
+class BlockIndex extends RBush {
+    toBBox(block: Block) { 
+        return {
+            minX: block.bottomLeft.x, 
+            minY: block.bottomLeft.y, 
+            maxX: block.topRightCoords.x, 
+            maxY: block.topRightCoords.y
+        }; 
+    }
+    compareMinX(block1: Block, block2: Block) { return block1.bottomLeft.x - block2.bottomLeft.x; }
+    compareMinY(block1: Block, block2: Block) { return block1.bottomLeft.y - block2.bottomLeft.y; }
+}
+
 class BlockKeeper {
     static blocks: Block[] = [];
+    static index = new BlockIndex();
 
     static addSomeRandomBlocks(nbOfBlocksPerRow: number): void {
         let xStep = gbloink.width / nbOfBlocksPerRow * 2;
@@ -109,6 +128,7 @@ class BlockKeeper {
         };
         let b: Block = new Block(bottomLeftCoords, topRightCoords, BlockKeeper.randomColour());
         BlockKeeper.blocks.push(b);
+        this.index.insert(b);
     }
 
     static randomColour(): string {
@@ -119,10 +139,16 @@ class BlockKeeper {
         }
         return color;
     }
-
+    /**
+     * Function called on clicks. If a block is clicked, it is removed, otherwise we had a random block
+     * @param point of the click
+     * @returns 
+     */
     static removeOrCreateAt(point: Coords): void {
         for (let i = 0; i < this.blocks.length; i++) {
             if (this.blocks[i].contains(point)) {
+                // remove the block from the index and the array (in that order!)
+                this.index.remove(this.blocks[i]);
                 this.blocks.splice(i, 1);
                 return;
             }
@@ -135,16 +161,18 @@ class BlockKeeper {
         gbloink.getBlockDrawingContext(true);
         this.blocks.forEach(block => block.draw());
     }
-
+    /**
+     * Efficiently handle collisions between balls and blocks by finding quicly the nearest blocks
+     * @param ball the ball to check for collisions
+     */
     static handleCollisions(ball: Ball): void {
-        for (let i = 0; i < this.blocks.length; i++) {
-            if (this.blocks[i].bounces(ball)) {
-                // collision detected, there can be only one collision per ball per time unit
-                break;
-            }
+        let nearBlocks = BlockKeeper.index.search(ball.nearTrajectoryBbox());
+        if (nearBlocks.length > 0) {
+            nearBlocks[0].bounces(ball);
         }
     }
 }
+
 
 /**
  * Class representing a ball bouncing around on the canvas
@@ -171,6 +199,22 @@ class Ball {
         speedSlider.addEventListener('input', this.handleSpeedChangeEvent.bind(this));
     }
 
+    nearTrajectoryBbox() {
+        return {
+            minX: Math.min(this.position.x,this.position.x + this.speed.x), 
+            minY: Math.min(this.position.y,this.position.y + this.speed.y),
+            maxX: Math.max(this.position.x,this.position.x + this.speed.x),
+            maxY: Math.max(this.position.y,this.position.y + this.speed.y)
+        }
+    };
+
+    /**
+     * Handle the collision between two balls, changing their speed
+     * and playing a note
+     * @param b1 the first ball
+     * @param b2 the second ball
+     * @returns true if the balls collide, false otherwise
+     */
     static handleBallPairCollision(b1: Ball, b2: Ball): boolean {
         let dx = Math.abs(b1.position.x - b2.position.x);
         let dy = Math.abs(b1.position.y - b2.position.y);
@@ -343,6 +387,7 @@ class ScaleKeeper {
 }
 
 declare const WebAudioTinySynth: any;
+
 /**
 * Each ball has one instance of this class responsible for managing the sound
 * which is played when the ball bounces
