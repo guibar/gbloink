@@ -7,6 +7,13 @@ type Coords = {
     y: number;
 }
 
+function addCoords(c1: Coords, c2: Coords): Coords {
+    return {
+        x: c1.x + c2.x,
+        y: c1.y + c2.y
+    };
+}
+
 /** 
  * Class representing a rectangle shaped obstacle to the balls on the canvas
 */
@@ -43,42 +50,26 @@ class Block {
         return true;
     }
     /**
-     * Given a ball, detect if the ball will cross one of the vertical edges of this block
-     * If it does, invert the vertical speed of the ball and return true
+     * Given a ball, detect if the ball will bounce on the block
      * @param one of the 3 balls
-     * @returns true if one of the edges of this block would be crossed by the ball 
-     * in the next move if it keeps the same moving direction.
+     * @returns true if the ball bounces on the block, false otherwise
      */
-    adjustVspeed(ball: Ball): boolean {
-        // y coord of ball would change side of the bottom edge y coord 
-        // and x coord is within the x range of the edge +/- the speed increment
-        if (((ball.position.y - this.bottomLeft.y) * (ball.position.y + ball.speed.x - this.bottomLeft.y)) <= 0 &&
-            this.bottomLeft.x - ball.speed.x <= ball.position.x && ball.position.x <= this.topRightCoords.x + ball.speed.x) {
-            ball.speed.y = -ball.speed.y;
-            return true;
-        }
-        // y coord of ball would change side of the top edge y coord 
-        // and x coord is within the x range of the edge +/- the speed increment
-        else if (((ball.position.y - this.topRightCoords.y) * (ball.position.y + ball.speed.y - this.topRightCoords.y)) <= 0 &&
-            this.bottomLeft.x - ball.speed.x <= ball.position.x && ball.position.x <= this.topRightCoords.x + ball.speed.x) {
-            ball.speed.y = -ball.speed.y;
-            return true;
-        }
-    }
-
-    adjustHspeed(ball: Ball): boolean {
-        // ball will cross the left edge
-        if (((ball.position.x - this.bottomLeft.x) * (ball.position.x + ball.speed.x - this.bottomLeft.x)) <= 0 &&
-            this.bottomLeft.y - ball.speed.y <= ball.position.y && ball.position.y <= this.topRightCoords.y + ball.speed.y) {
+    bounces(ball: Ball): boolean {
+        let bounceLeftOrRight:boolean = false;
+        let bounceUpOrDown:boolean = false;
+        if (this.contains(addCoords(ball.position,{x: ball.speed.x, y: 0}))) {
             ball.speed.x = -ball.speed.x;
-            return true;
+            bounceLeftOrRight = true;
         }
-        // ball will cross the right edge
-        if (((ball.position.x - this.topRightCoords.x) * (ball.position.x + ball.speed.x - this.topRightCoords.x)) <= 0 &&
-            this.bottomLeft.y - ball.speed.y <= ball.position.y && ball.position.y <= this.topRightCoords.y + ball.speed.y) {
-            ball.speed.x = -ball.speed.x;
-            return true;
+        if (this.contains(addCoords(ball.position,{x: 0, y: ball.speed.y}))) {
+            ball.speed.y = -ball.speed.y;
+            bounceUpOrDown = true;
         }
+        if (bounceLeftOrRight || bounceUpOrDown) {
+            ball.playNote();
+            return true
+        }
+        return false;
     }
 
     draw(): void {
@@ -147,21 +138,11 @@ class BlockKeeper {
     }
 
     static handleCollisions(ball: Ball): void {
-        let willBounce: boolean = false;
         for (let i = 0; i < this.blocks.length; i++) {
-            if (this.blocks[i].adjustVspeed(ball)) {
-                willBounce = true;
+            if (this.blocks[i].bounces(ball)) {
+                // collision detected, there can be only one collision per ball per time unit
                 break;
             }
-        }
-        for (let i = 0; i < this.blocks.length; i++) {
-            if (this.blocks[i].adjustHspeed(ball)) {
-                willBounce = true;
-                break
-            }
-        }
-        if (willBounce) {
-            ball.playNote();
         }
     }
 }
