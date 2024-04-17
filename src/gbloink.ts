@@ -155,24 +155,16 @@ class Ball {
     static radius: number = 5;
     name: string;
     position: Coords;
-    // x: number;
-    // y: number;
     colour: string;
     synth: Synth;
     speed: Coords;
-    // dx: number;
-    // dy: number;
 
     constructor(c: Coords, colour: string, name: string, timbre: number) {
         this.name = name;
         this.position = c;
-        // this.x = c.x;
-        // this.y = c.y;
         this.colour = colour;
         this.synth = new Synth(name, timbre);
         this.speed = { x: 2, y: 2 };
-        // this.dx = 2;
-        // this.dy = 2;
 
         let speedSlider = document.getElementById(name + '_speed') as HTMLInputElement;
         speedSlider.value = this.speed.x.toString();
