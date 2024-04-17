@@ -12,10 +12,9 @@ Just run tsc at the root of the project and load index.html in a browser.
 ## Done
 - Converted to typescript
 - Put balls on one canvas and blocks on a different one
-  
+- Played with spatial index [rbush](https://github.com/mourner/rbush) to find quickly which block will be hit if any. 
 
 ## To Do
-- Play with a spatial index like [rbush](https://github.com/mourner/rbush) to make collision handling with blocks more efficient.
 - Try a different MIDI library like Midi.js
   
 
