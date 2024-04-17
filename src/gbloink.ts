@@ -40,28 +40,6 @@ class Block {
         }
         return true;
     }
-    /**
-     * Given a ball, detect if the ball will bounce on the block
-     * @param one of the 3 balls
-     * @returns true if the ball bounces on the block, false otherwise
-     */
-    bounces(ball: Ball): boolean {
-        let bounceLeftOrRight:boolean = false;
-        let bounceUpOrDown:boolean = false;
-        if (this.contains(addCoords(ball.position,{x: ball.speed.x, y: 0}))) {
-            ball.speed.x = -ball.speed.x;
-            bounceLeftOrRight = true;
-        }
-        if (this.contains(addCoords(ball.position,{x: 0, y: ball.speed.y}))) {
-            ball.speed.y = -ball.speed.y;
-            bounceUpOrDown = true;
-        }
-        if (bounceLeftOrRight || bounceUpOrDown) {
-            ball.playNote();
-            return true
-        }
-        return false;
-    }
 
     draw(): void {
         let ctx: CanvasRenderingContext2D = gbloink.getBlockDrawingContext();
@@ -161,16 +139,6 @@ class BlockKeeper {
         gbloink.getBlockDrawingContext(true);
         this.blocks.forEach(block => block.draw());
     }
-    /**
-     * Efficiently handle collisions between balls and blocks by finding quicly the nearest blocks
-     * @param ball the ball to check for collisions
-     */
-    static handleCollisions(ball: Ball): void {
-        let nearBlocks = BlockKeeper.index.search(ball.nearTrajectoryBbox());
-        if (nearBlocks.length > 0) {
-            nearBlocks[0].bounces(ball);
-        }
-    }
 }
 
 
@@ -199,7 +167,7 @@ class Ball {
         speedSlider.addEventListener('input', this.handleSpeedChangeEvent.bind(this));
     }
 
-    nearTrajectoryBbox() {
+    hereToNextTrajectoryBbox() {
         return {
             minX: Math.min(this.position.x,this.position.x + this.speed.x), 
             minY: Math.min(this.position.y,this.position.y + this.speed.y),
@@ -209,55 +177,54 @@ class Ball {
     };
 
     /**
-     * Handle the collision between two balls, changing their speed
+     * Handle the collision between this ball and another ball, changing their speed
      * and playing a note
-     * @param b1 the first ball
-     * @param b2 the second ball
-     * @returns true if the balls collide, false otherwise
+     * @param otherBall the second ball
      */
-    static handleBallPairCollision(b1: Ball, b2: Ball): boolean {
-        let dx = Math.abs(b1.position.x - b2.position.x);
-        let dy = Math.abs(b1.position.y - b2.position.y);
+    handleCollisionWithBall(otherBall: Ball): void {
+        let dx = Math.abs(this.position.x - otherBall.position.x);
+        let dy = Math.abs(this.position.y - otherBall.position.y);
 
         // if the balls are too far away on both dimensions,
         if (dx > Ball.hitDistance || dy > Ball.hitDistance) {
-            return false;
+            return;
         } // else, balls will collide
         // if they are moving on opposite directions in both x and y, 
         // reverse the y speed if they are more aligned on the x axis and vice-versa
         // If they are equally aligned on x and y, reverse both speeds (both if clauses apply )
-        if (b1.speed.x * b2.speed.x < 0 && b1.speed.y * b2.speed.y < 0) {
+        if (this.speed.x * otherBall.speed.x < 0 && this.speed.y * otherBall.speed.y < 0) {
             if (dx >= dy) {
-                b1.speed.x *= -1;
-                b2.speed.x *= -1;
+                this.speed.x *= -1;
+                otherBall.speed.x *= -1;
             } 
             if (dx <= dy) {
-                b1.speed.y *= -1;
-                b2.speed.y *= -1;
+                this.speed.y *= -1;
+                otherBall.speed.y *= -1;
             }
         } else {  // if they are only opposed in speed in one dimension, reverse the speed of both balls in that dimension
-            if (b1.speed.y * b2.speed.y < 0) {
-                b1.speed.y *= -1;
-                b2.speed.y *= -1;
-            } else if (b1.speed.x * b2.speed.x < 0) {
-                b1.speed.x *= -1;
-                b2.speed.x *= -1;
+            if (this.speed.y * otherBall.speed.y < 0) {
+                this.speed.y *= -1;
+                otherBall.speed.y *= -1;
+            } else if (this.speed.x * otherBall.speed.x < 0) {
+                this.speed.x *= -1;
+                otherBall.speed.x *= -1;
             }
         }
         // the case where they are moving in the same direction but one is faster is not handled
-        b1.playNote();
-        b2.playNote();
-        return true;
+        this.playNote();
+        otherBall.playNote();
     }
 
-    // consider the 3 (unordered) pairwise interactions between balls
-    static handleBallsCollision(balls: Ball[]): void {
-        for (let i = 0; i < balls.length; i++) {
-            for (let j = i + 1; j < balls.length; j++) {
-                this.handleBallPairCollision(balls[i], balls[j]);
+    /**
+     * Handle the collisions between this ball and the ones after it in the array
+     */
+    handleCollisions(): void {
+        let i = gbloink.balls.indexOf(this);
+        for (let j = i + 1; j < gbloink.balls.length; j++) {
+            this.handleCollisionWithBall(gbloink.balls[j]);
             }
         }
-    }
+
     /**
      * Move the ball by dx and dy corresponding to one unit of time. 
      * |dx| = |dy| so All balls move at the same speed
@@ -286,6 +253,32 @@ class Ball {
             this.playNote();
         }
     }
+    
+    /**
+     * Given a ball, handle any possible block collision
+     * @param one of the 3 balls
+     * @returns true if the ball bounces on the block, false otherwise
+     */
+    bounceOnBlocks(): void {
+        let nearBlocks = BlockKeeper.index.search(this.hereToNextTrajectoryBbox());
+        // if some block(s) is(are) close enough, bounce on the first one
+        if (nearBlocks.length > 0) {
+            let bounceLeftOrRight:boolean = false;
+            let bounceUpOrDown:boolean = false;
+            if (nearBlocks[0].contains(addCoords(this.position,{x: this.speed.x, y: 0}))) {
+                this.speed.x = -this.speed.x;
+                bounceLeftOrRight = true;
+            }
+            if (nearBlocks[0].contains(addCoords(this.position,{x: 0, y: this.speed.y}))) {
+                this.speed.y = -this.speed.y;
+                bounceUpOrDown = true;
+            }
+            if (bounceLeftOrRight || bounceUpOrDown) {
+                this.playNote();
+            }
+        }
+    }
+    
     /**
      * Map linearly the y coordinate in [0, height] range to note in [96, 30] range = [C7, B2]
      * The bottom of the canvas has the highest y coordinate and maps to the lowest note 
@@ -518,12 +511,8 @@ class Gbloink {
         this.balls.forEach((ball: Ball) => {
             ball.move(); 
             ball.handleBorderCollision();
-        });
-
-        Ball.handleBallsCollision(this.balls);
-        
-        this.balls.forEach((ball: Ball) => {
-            BlockKeeper.handleCollisions(ball);
+            ball.handleCollisions();
+            ball.bounceOnBlocks();
             ball.draw();
         });
      }
