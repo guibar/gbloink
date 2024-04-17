@@ -388,7 +388,7 @@ declare const WebAudioTinySynth: any;
 class Synth {
     synth: any;
     volume: number = 50;
-    delay: number = 1;
+    note_duration: number = 2;
     timbre: number;
     previousNote: number = 0;
     midiChannel: number = 0;
@@ -411,10 +411,10 @@ class Synth {
             this.volume = parseInt((event.target as HTMLInputElement).value);
         });
 
-        let delaySlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
-        delaySlider.value = this.delay.toString();
-        delaySlider.addEventListener('input', (event: InputEvent) => {
-            this.delay = parseInt((event.target as HTMLInputElement).value);
+        let noteDurationSlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
+        noteDurationSlider.value = this.note_duration.toString();
+        noteDurationSlider.addEventListener('input', (event: InputEvent) => {
+            this.note_duration = parseInt((event.target as HTMLInputElement).value);
         });
 
         let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
@@ -433,8 +433,7 @@ class Synth {
         this.previousNote = note;
 
         this.synth.noteOn(this.midiChannel, note, this.volume);
-        this.synth.noteOff(this.midiChannel, note, this.delay);
-        console.log('delay on ball is' + this.delay);
+        this.synth.noteOff(this.midiChannel, note, this.note_duration);
     }
 }
 
