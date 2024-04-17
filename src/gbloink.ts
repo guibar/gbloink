@@ -226,19 +226,19 @@ class Ball {
     /**
      * Adjust speed and make sound if ball is heading towards a border
      */
-    detectBorderCollision(): void {
-        let flag: boolean = false;
-        if (this.position.x < 3 || this.position.x > gbloink.ballCanvas.width - 3) {
+    handleBorderCollision(): void {
+        let bounceOnBorder: boolean = false;
+        let nextX = this.position.x + this.speed.x;
+        let nextY = this.position.y + this.speed.y;
+        if (nextX < 0 || nextX > gbloink.ballCanvas.width) {
             this.speed.x *= -1;
-            flag = true;
+            bounceOnBorder = true;
         }
-
-        if (this.position.y < 3 || this.position.y > gbloink.ballCanvas.height - 3) {
+        if (nextY < 0 || nextY > gbloink.ballCanvas.height) {
             this.speed.y *= -1;
-            flag = true;
+            bounceOnBorder = true;
         }
-
-        if (flag) {
+        if (bounceOnBorder) {
             this.playNote();
         }
     }
@@ -472,7 +472,7 @@ class Gbloink {
         this.getBallDrawingContext(true);
         this.balls.forEach((ball: Ball) => {
             ball.move(); 
-            ball.detectBorderCollision();
+            ball.handleBorderCollision();
         });
 
         Ball.handleBallsCollision(this.balls);
