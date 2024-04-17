@@ -7,6 +7,8 @@ This is a fork from Phil John's Gbloink.
 
 The aim was to practice my typescript skills on something concrete and play a bit.
 
+Just run tsc at the root of the project and load index.html in a browser.
+
 ## Done
 - Converted to typescript
 - Put balls on one canvas and blocks on a different one
