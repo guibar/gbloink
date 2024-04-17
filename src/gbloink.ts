@@ -222,8 +222,8 @@ class Ball {
         let i = gbloink.balls.indexOf(this);
         for (let j = i + 1; j < gbloink.balls.length; j++) {
             this.handleCollisionWithBall(gbloink.balls[j]);
-            }
         }
+    }
 
     /**
      * Move the ball by dx and dy corresponding to one unit of time. 
@@ -411,15 +411,14 @@ class Synth {
             this.volume = parseInt((event.target as HTMLInputElement).value);
         });
 
-        // remove this code for now, until I find a satisfactory way to handle note duration
-        // let delaySlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
-        // delaySlider.value = this.delay.toString();
-        // delaySlider.addEventListener('input', (event: InputEvent) => {
-        //     this.delay = parseInt((event.target as HTMLInputElement).value);
-        // });
+        let delaySlider = document.getElementById(ballName + '_delay') as HTMLInputElement;
+        delaySlider.value = this.delay.toString();
+        delaySlider.addEventListener('input', (event: InputEvent) => {
+            this.delay = parseInt((event.target as HTMLInputElement).value);
+        });
 
         let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
-        instrumentSlider.value = timbre.toString();
+        instrumentSlider.value = this.timbre.toString();
         instrumentSlider.addEventListener('input', (event: InputEvent) => {
             this.timbre = parseInt((event.target as HTMLInputElement).value);
             this.synth.setProgram(this.midiChannel, this.timbre);
@@ -435,6 +434,7 @@ class Synth {
 
         this.synth.noteOn(this.midiChannel, note, this.volume);
         this.synth.noteOff(this.midiChannel, note, this.delay);
+        console.log('delay on ball is' + this.delay);
     }
 }
 
