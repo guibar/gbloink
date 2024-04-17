@@ -6,10 +6,44 @@ body {
 #controls {
     margin: 3px;
     padding: 3px;
-} 
-.red { background-color: #ff0000; }
-.green { background-color: #00ff00; }
-.blue { background-color: #0000ff; }
+}
+
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 15px; 
+    border-radius: 5px;  
+    background: #d3d3d3;
+    outline: none;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%; 
+    background: #d3d3d3;
+    cursor: pointer;
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #d3d3d3;
+    cursor: pointer;
+  }
+
+.slider.red::-webkit-slider-thumb { background: #ff0000; }
+.slider.green::-webkit-slider-thumb { background: #00ff00; }
+.slider.blue::-webkit-slider-thumb { background: #0000ff; }
+
+.slider.red::-moz-range-thumb { background: #ff0000; }
+.slider.green::-moz-range-thumb { background: #00ff00; }
+.slider.blue::-moz-range-thumb { background: #0000ff; }
 
 nav {
     display: flex;
