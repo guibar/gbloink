@@ -428,7 +428,7 @@ class Synth {
         let instrumentSlider = document.getElementById(ballName + '_instrument') as HTMLInputElement;
         instrumentSlider.value = timbre.toString();
         instrumentSlider.addEventListener('input', (event: InputEvent) => {
-            this.timbre = this.midiChannel, parseInt((event.target as HTMLInputElement).value);
+            this.timbre = parseInt((event.target as HTMLInputElement).value);
             this.synth.setProgram(this.midiChannel, this.timbre);
         });
     }
